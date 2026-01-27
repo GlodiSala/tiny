@@ -10,7 +10,6 @@ module ALU(
     output reg negative_flag  
     );
     
-    reg [8:0] tmp_result;
     reg [7:0] b_inv;
     reg cin;
 
