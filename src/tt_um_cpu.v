@@ -116,10 +116,10 @@ module tt_um_cpu (
     // ========================================================================
     
     // On XOR les entrées restantes pour s'assurer que 'ena' et les autres sont routées.
-    (* keep *) wire _keep_alive = ^ui_in ^ ena ^ is_branch;
+    (* keep *) wire _logic_cleaning = ^ui_in ^ ena ^ is_branch ^ uio_in[0] ^ (^uio_in[7:3]);
 
-    // uo_out[0] : Affiche PC[0] mais force aussi la logique keep_alive
-    assign uo_out[0] = pc_current[0] ^ (_keep_alive & 1'b0);
+    // On ancre tout ça sur uo_out[0] de façon invisible
+    assign uo_out[0] = pc_current[0] ^ (_logic_cleaning & 1'b0);
     
     // uo_out[6:1] : Bits du Program Counter
     assign uo_out[3:1] = pc_current[3:1];
