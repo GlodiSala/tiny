@@ -15,16 +15,16 @@ project:
   # List your project's source files here.
   # Source files must be in ./src and you must list each source file separately, one per line.
   source_files:
-    - "src/tt_um_cpu.v"
-    - "src/ALU.v"
-    - "src/BranchUnit.v"
-    - "src/ControlUnit.v"
-    - "src/DataMemory.v"
-    - "src/FlagRegister.v"
-    - "src/ProgramCounter.v"
-    - "src/ProgramMemory_SPI.v" 
-    - "src/register_file.v"
-    - "src/defines.vh"
+    - "tt_um_CPU.v"
+    - "ALU.v"
+    - "BranchUnit.v"
+    - "ControlUnit.v"
+    - "DataMemory.v"
+    - "FlagRegister.v"
+    - "ProgramCounter.v"
+    - "ProgramMemory_SPI.v" 
+    - "register_file.v"
+    - "defines.vh"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
