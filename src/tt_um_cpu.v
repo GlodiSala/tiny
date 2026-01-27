@@ -2,15 +2,16 @@
 
 module tt_um_cpu (
     input  wire [7:0] ui_in,    // Entrées dédiées
-    output wire [7:0] uo_out,   // Sorties dédiées
+    output wire [7:0] uo_out,   // Sorties dédiées (LEDs)
     input  wire [7:0] uio_in,   // IOs bidirectionnelles (Entrée)
     output wire [7:0] uio_out,  // IOs bidirectionnelles (Sortie)
-    output wire [7:0] uio_oe,   // IOs bidirectionnelles (Contrôle)
-    input  wire       ena,      // Signal d'activation (LE COUPABLE !)
+    output wire [7:0] uio_oe,   // IOs bidirectionnelles (Direction)
+    input  wire       ena,      // Signal d'activation
     input  wire       clk,      // Horloge
     input  wire       rst_n     // Reset actif bas
 );
 
+    // --- LOGIQUE DE BASE ---
     wire rst = !rst_n;
 
     // --- SIGNAUX INTERNES CPU ---
@@ -18,8 +19,7 @@ module tt_um_cpu (
     wire [15:0] instruction;
     wire        mem_ready;
     
-    // ANCRAGE FONCTIONNEL : Le CPU ne fonctionne QUE si ena est à 1
-    // On crée un signal global "enable" pour tout le processeur
+    // Le CPU ne tourne que si le chip est activé (ena) et la mémoire prête
     wire global_en = ena && mem_ready;
 
     // Signaux de Contrôle
@@ -37,37 +37,36 @@ module tt_um_cpu (
     wire [15:0] branch_target;
 
     // --- SIGNAUX SPI ---
-    wire spi_cs, spi_sclk, spi_io0_o, spi_io0_oe, spi_io0_i, spi_io1_o, spi_io1_oe;
-    
-    // On garde l'attribut keep pour le MISO qui a été réglé au run précédent
-    (* keep, dont_touch *) wire spi_io1_i; 
+    wire spi_cs, spi_sclk, spi_io0_o, spi_io0_oe, spi_io0_i, spi_io1_o, spi_io1_oe, spi_io1_i;
 
-    // --- MAPPING SPI ---
+    // --- MAPPING SPI (uio[0:3]) ---
     assign uio_out[0] = spi_cs;
     assign uio_oe[0]  = 1'b1;
     assign uio_out[1] = spi_io0_o;
     assign uio_oe[1]  = spi_io0_oe;
     assign spi_io0_i  = uio_in[1];
-    assign uio_out[2] = spi_io1_o;
-    assign uio_oe[2]  = spi_io1_oe;
-    assign spi_io1_i  = uio_in[2]; 
+    assign uio_out[2] = 1'b0;      // MISO est une entrée
+    assign uio_oe[2]  = 1'b0;      // Mode entrée pour uio[2]
+    assign spi_io1_i  = uio_in[2]; // Connexion MISO critique
     assign uio_out[3] = spi_sclk;
     assign uio_oe[3]  = 1'b1;
+
+    // Pins uio[7:4] inutilisées (mises à 0)
     assign uio_out[7:4] = 4'b0000;
     assign uio_oe[7:4]  = 4'b0000;
 
     // ========================================================================
-    // INSTANCIATIONS (Note l'utilisation de global_en)
+    // INSTANCIATIONS DES MODULES
     // ========================================================================
+
     ProgramMemory_SPI program_mem (
-        .clk(clk), .rst(rst), .address(pc_current), .instruction(instruction), 
-        .ready(mem_ready), .spi_cs(spi_cs), .spi_sclk(spi_sclk),
-        .spi_io0_o(spi_io0_o), .spi_io0_oe(spi_io0_oe), .spi_io0_i(spi_io0_i),
-        .spi_io1_o(spi_io1_o), .spi_io1_oe(spi_io1_oe), .spi_io1_i(spi_io1_i)
+        .clk(clk), .rst(rst), .address(pc_current), .instruction(instruction), .ready(mem_ready),
+        .spi_cs(spi_cs), .spi_sclk(spi_sclk), .spi_io0_o(spi_io0_o), .spi_io0_oe(spi_io0_oe), 
+        .spi_io0_i(spi_io0_i), .spi_io1_o(spi_io1_o), .spi_io1_oe(spi_io1_oe), .spi_io1_i(spi_io1_i)
     );
 
     ProgramCounter pc_inst (
-        .clk(clk), .rst(rst), .mem_ready(global_en), // ANCRAGE ICI
+        .clk(clk), .rst(rst), .mem_ready(global_en),
         .branch_en(branch_taken), .branch_addr(branch_target), .pc_current(pc_current)
     );
 
@@ -82,9 +81,9 @@ module tt_um_cpu (
     assign reg_write_data = (reg_write_src == 2'b01) ? mem_rdata : alu_result;
     
     RegisterFile regfile (
-        .clk(clk), .rst(rst), .write_en(reg_write), .enable(global_en), // ANCRAGE ICI
-        .addr_wr(instruction[11:9]), .data_wr(reg_write_data),
-        .addr1_r(addr1_select), .addr2_r(addr2_select), .out1_r(reg_data1), .out2_r(reg_data2)
+        .clk(clk), .rst(rst), .write_en(reg_write), .enable(global_en),
+        .addr_wr(instruction[11:9]), .data_wr(reg_write_data), .addr1_r(addr1_select),
+        .addr2_r(addr2_select), .out1_r(reg_data1), .out2_r(reg_data2)
     );
 
     ALU alu_inst (
@@ -94,7 +93,7 @@ module tt_um_cpu (
     );
 
     FlagRegister flag_reg (
-        .clk(clk), .rst(rst), .write(flag_write && global_en), // ANCRAGE ICI
+        .clk(clk), .rst(rst), .write(flag_write && global_en),
         .flags_alu({overflow, carry, negative, zero}), .stored_flags(stored_flags)
     );
 
@@ -104,26 +103,28 @@ module tt_um_cpu (
     );
 
     DataMemory data_mem (
-        .clk(clk), .mem_read(mem_read), .mem_write(mem_write && global_en), // ANCRAGE ICI
+        .clk(clk), .mem_read(mem_read), .mem_write(mem_write && global_en),
         .addr(alu_result), .wdata(reg_data2), .rdata(mem_rdata)
     );
 
-   // ========================================================================
-    // ANCRAGE TOTAL (Anti-Optimisation Nucléaire)
+    // ========================================================================
+    // ANCRAGE TOTAL DES PINS (Protection contre GRT-0076)
     // ========================================================================
     
-    // uo_out[3:0] : Affichage des bits bas du PC
-    assign uo_out[3:0] = pc_current[3:0];
+    // On mappe DIRECTEMENT les entrées problématiques sur les sorties uo_out
+    // Si l'entrée est branchée à une sortie physique, elle ne peut PAS être supprimée.
+    
+    assign uo_out[0] = ui_in[0];      // Sauve ui_in[0]
+    assign uo_out[1] = ena;           // Sauve ena
+    assign uo_out[2] = spi_io1_i;    // Sauve uio_in[2] (MISO)
+    assign uo_out[3] = is_branch;     // Sauve le signal interne is_branch
+    
+    // On XOR le reste pour nettoyer les warnings UNUSEDSIGNAL du linter
+    assign uo_out[4] = ^ui_in[7:1];   // Sauve le reste de ui_in
+    assign uo_out[5] = ^uio_in[7:3] ^ uio_in[0]; // Sauve le reste de uio_in
+    
+    // On garde deux LEDs pour voir que le PC bouge quand même !
+    assign uo_out[6] = pc_current[0];
+    assign uo_out[7] = pc_current[1];
 
-    // uo_out[4] : On sort directement ENA (indispensable)
-    assign uo_out[4] = ena;
-
-    // uo_out[5] : On fait un XOR de tous les bits de ui_in (sauve les 8 pins ui_in)
-    assign uo_out[5] = ^ui_in;
-
-    // uo_out[6] : On fait un XOR de tous les bits de uio_in (sauve uio_in[2] et les autres)
-    assign uo_out[6] = ^uio_in;
-
-    // uo_out[7] : Signal de debug (par exemple is_branch ou PC bit haut)
-    assign uo_out[7] = pc_current[4] ^ is_branch;
 endmodule
