@@ -125,6 +125,5 @@ module tt_um_cpu (
     assign uo_out[6] = ^uio_in;
 
     // uo_out[7] : Signal de debug (par exemple is_branch ou PC bit haut)
-    assign uo_out[7] = pc_current[4];
-
+    assign uo_out[7] = pc_current[4] ^ is_branch;
 endmodule
