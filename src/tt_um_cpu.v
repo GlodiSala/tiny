@@ -13,20 +13,15 @@ module tt_um_cpu (
 
     wire rst = !rst_n;
 
-    // ========================================================================
-    // TRIPLE BUFFER POUR MISO (CRITIQUE POUR ASIC)
-    // ========================================================================
-    reg uio_in_2_buf1, uio_in_2_buf2, uio_in_2_buf3;
+
+    // Simplifier le buffer MISO (1 étage suffit maintenant)
+    reg spi_miso_buf;
     
     always @(posedge clk) begin
         if (rst) begin
-            uio_in_2_buf1 <= 1'b0;
-            uio_in_2_buf2 <= 1'b0;
-            uio_in_2_buf3 <= 1'b0;
+            spi_miso_buf <= 1'b0;
         end else begin
-            uio_in_2_buf1 <= uio_in[2];
-            uio_in_2_buf2 <= uio_in_2_buf1;
-            uio_in_2_buf3 <= uio_in_2_buf2;
+            spi_miso_buf <= uio_in[2];  // 1 seul registre !
         end
     end
 
@@ -64,39 +59,34 @@ module tt_um_cpu (
     // ========================================================================
     // PROGRAM MEMORY (SPI)
     // ========================================================================
-    ProgramMemory_SPI program_mem (
+        ProgramMemory_SPI_RAM program_mem (
         .clk(clk),
         .rst(rst | !ena),
         .address(pc_current),
         .instruction(instruction),
         .ready(mem_ready),
         .spi_cs(spi_cs),
-        .spi_sclk(spi_sclk),
-        .spi_io0_o(spi_io0_o),
-        .spi_io0_oe(spi_io0_oe),
-        .spi_io0_i(spi_io0_i),
-        .spi_io1_i(spi_io1_i)
+        .spi_sck(spi_sck),
+        .spi_mosi(spi_mosi),
+        .spi_miso(spi_miso_buf)  // Signal bufférisé
     );
 
     // ========================================================================
     // MAPPING SPI (STANDARD TINY TAPEOUT)
     // ========================================================================
+       wire spi_cs, spi_sck, spi_mosi;
+
     assign uio_out[0] = spi_cs;
     assign uio_oe[0]  = 1'b1;
-
-    assign uio_out[1] = spi_io0_o;
-    assign uio_oe[1]  = spi_io0_oe;
-    assign spi_io0_i  = uio_in[1];
-
+    
+    assign uio_out[1] = spi_mosi;
+    assign uio_oe[1]  = 1'b1;
+    
     assign uio_out[2] = 1'b0;
     assign uio_oe[2]  = 1'b0;
-    assign spi_io1_i  = uio_in_2_buf3;
-
-    assign uio_out[3] = spi_sclk;
+    
+    assign uio_out[3] = spi_sck;
     assign uio_oe[3]  = 1'b1;
-
-    assign uio_out[7:4] = 4'b0000;
-    assign uio_oe[7:4]  = 4'b0000;
 
     // ========================================================================
     // MODULES INTERNES
