@@ -30,5 +30,6 @@ module DataMemory (
         else 
             rdata = 8'b0;
     end
-
+// Signaux inutilisés pour éviter les warnings de lint
+    wire [3:0] _unused_addr = addr[7:4];
 endmodule
