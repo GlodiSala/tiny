@@ -1,49 +1,13 @@
 import os
-import shutil
 import subprocess
 
-# 1. Création du dossier src
-if not os.path.exists("src"):
-    os.makedirs("src")
-    print("[OK] Dossier 'src' créé.")
-
-# 2. Liste des fichiers à déplacer
-files_to_move = [
-    "tt_um_CPU.v",
-    "ALU.v",
-    "BranchUnit.v",
-    "ControlUnit.v",
-    "DataMemory.v",
-    "FlagRegister.v",
-    "ProgramCounter.v",
-    "ProgramMemory_SPI.v",
-    "register_file.v",
-    "AudioPWM.v",
-    "defines.vh"
-]
-
-print("-" * 30)
-print("Déplacement des fichiers vers src/...")
-for file in files_to_move:
-    if os.path.exists(file):
-        try:
-            shutil.move(file, os.path.join("src", file))
-            print(f" -> {file} déplacé.")
-        except Exception as e:
-            print(f" -> Erreur déplacement {file}: {e}")
-    elif os.path.exists(os.path.join("src", file)):
-        print(f" -> {file} est déjà dans src.")
-    else:
-        print(f" [INFO] Fichier {file} introuvable (peut-être pas encore créé), ignoré.")
-
-# 3. Mise à jour du info.yaml avec les nouveaux chemins
-# On réécrit le fichier proprement
-new_info_content = """--- 
+# 1. On réécrit le info.yaml STRICTEMENT avec tes fichiers existants
+info_content = """--- 
 project:
   title: "Microprocesseur 8-bit SPI"
   author: "GlodiSala"
   discord: ""
-  description: "Un CPU 8-bit personnalisé avec mémoire externe SPI et Audio"
+  description: "Un CPU 8-bit avec memoire externe SPI"
   language: "Verilog"
   clock_hz: 50000000 # 50MHz
 
@@ -51,7 +15,7 @@ project:
   how_to_test: "Testbench via SPI"
   external_hw: ""
 
-  # FICHIERS DANS LE DOSSIER SRC
+  # LA LISTE EXACTE DE TES FICHIERS (Sans Audio)
   source_files:
     - "src/tt_um_CPU.v"
     - "src/ALU.v"
@@ -60,14 +24,13 @@ project:
     - "src/DataMemory.v"
     - "src/FlagRegister.v"
     - "src/ProgramCounter.v"
-    - "src/ProgramMemory_SPI.v"
+    - "src/ProgramMemory_SPI.v" 
     - "src/register_file.v"
-    - "src/AudioPWM.v"
     - "src/defines.vh"
 
   top_module:  "tt_um_cpu"
 
-# Pins
+# Configuration des Pins standard
   inputs:
     - ui_in[0]
     - ui_in[1]
@@ -97,22 +60,24 @@ project:
     - uio_out[7]
 """
 
+# Écriture du fichier
 with open("info.yaml", "w") as f:
-    f.write(new_info_content)
-print("[OK] info.yaml mis à jour avec les chemins 'src/'.")
+    f.write(info_content)
+print("[OK] info.yaml nettoyé (Version sans Audio).")
 
-# 4. Git Push
+# 2. Envoi vers GitHub
 def run_git(cmd):
+    print(f"Exec: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
 print("-" * 30)
-print("Envoi vers GitHub...")
 try:
-    run_git("git add .")
-    # On commit les suppressions (fichiers déplacés) et les ajouts
-    run_git('git add -u') 
-    run_git('git commit -m "Refactor: Déplacement des sources dans src/"')
+    run_git("git add info.yaml")
+    # On commit. Si rien n'a changé, git peut raler, donc on ignore l'erreur du commit
+    subprocess.run('git commit -m "Fix: Config propre sans Audio"', shell=True)
+    
+    print("--> PUSH vers GitHub...")
     run_git("git push")
-    print("\n✅ RANGEMENT TERMINÉ ! Retourne voir GitHub Actions.")
+    print("\n✅ C'EST PARTI ! Va voir GitHub Actions.")
 except Exception as e:
-    print(f"Erreur git : {e}")
+    print(f"Erreur : {e}")
