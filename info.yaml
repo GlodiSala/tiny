@@ -1,0 +1,57 @@
+--- 
+# Tiny Tapeout project information
+project:
+  yaml_version: 6
+  title: "Microprocesseur 8-bit SPI"
+  author: "GlodiSala"
+  discord: ""
+  description: "Un CPU 8-bit avec memoire externe SPI"
+  language: "Verilog"
+  clock_hz: 50000000 
+
+  how_it_works: "CPU custom architecture"
+  how_to_test: "Testbench via SPI"
+  external_hw: ""
+
+  source_files:
+    - "src/tt_um_CPU.v"
+    - "src/ALU.v"
+    - "src/BranchUnit.v"
+    - "src/ControlUnit.v"
+    - "src/DataMemory.v"
+    - "src/FlagRegister.v"
+    - "src/ProgramCounter.v"
+    - "src/ProgramMemory_SPI.v" 
+    - "src/register_file.v"
+    - "src/defines.vh"
+
+  top_module:  "tt_um_cpu"
+
+# Configuration des Pins
+  inputs:
+    - ui_in[0]
+    - ui_in[1]
+    - ui_in[2]
+    - ui_in[3]
+    - ui_in[4]
+    - ui_in[5]
+    - ui_in[6]
+    - ui_in[7]
+  outputs:
+    - uo_out[0]
+    - uo_out[1]
+    - uo_out[2]
+    - uo_out[3]
+    - uo_out[4]
+    - uo_out[5]
+    - uo_out[6]
+    - uo_out[7]
+  bidirectional:
+    - uio_out[0]
+    - uio_out[1]
+    - uio_out[2]
+    - uio_out[3]
+    - uio_out[4]
+    - uio_out[5]
+    - uio_out[6]
+    - uio_out[7]
