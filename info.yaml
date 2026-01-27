@@ -1,20 +1,20 @@
---- 
 # Tiny Tapeout project information
 project:
-  yaml_version: 6
-  tiles: "1x1"
-  
-  title: "Microprocesseur 8-bit SPI"
-  author: "GlodiSala"
-  discord: ""
-  description: "Un CPU 8-bit avec memoire externe SPI"
-  language: "Verilog"
-  clock_hz: 50000000 
+  title:        "Microprocesseur 8-bit SPI"
+  author:       "GlodiSala"
+  discord:      ""      
+  description:  "Un CPU 8-bit avec memoire externe SPI"
+  language:     "Verilog"
+  clock_hz:     50000000 # 50MHz
 
-  how_it_works: "CPU custom architecture"
-  how_to_test: "Testbench via SPI"
-  external_hw: ""
+  # How many tiles your design occupies? A single tile is about 167x108 uM.
+  tiles: "1x1"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
 
+  # Your top module name must start with "tt_um_". Make it unique by including your github username:
+  top_module:  "tt_um_cpu"
+
+  # List your project's source files here.
+  # Source files must be in ./src and you must list each source file separately, one per line.
   source_files:
     - "src/tt_um_CPU.v"
     - "src/ALU.v"
@@ -27,33 +27,37 @@ project:
     - "src/register_file.v"
     - "src/defines.vh"
 
-  top_module:  "tt_um_cpu"
+# The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
+pinout:
+  # Inputs
+  ui[0]: "Input 0"
+  ui[1]: "Input 1"
+  ui[2]: "Input 2"
+  ui[3]: "Input 3"
+  ui[4]: "Input 4"
+  ui[5]: "Input 5"
+  ui[6]: "Input 6"
+  ui[7]: "Input 7"
 
-# Configuration des Pins (Documentation)
-inputs:
-  - ui_in[0]
-  - ui_in[1]
-  - ui_in[2]
-  - ui_in[3]
-  - ui_in[4]
-  - ui_in[5]
-  - ui_in[6]
-  - ui_in[7]
-outputs:
-  - uo_out[0]
-  - uo_out[1]
-  - uo_out[2]
-  - uo_out[3]
-  - uo_out[4]
-  - uo_out[5]
-  - uo_out[6]
-  - uo_out[7]
-bidirectional:
-  - uio_out[0]
-  - uio_out[1]
-  - uio_out[2]
-  - uio_out[3]
-  - uio_out[4]
-  - uio_out[5]
-  - uio_out[6]
-  - uio_out[7]
+  # Outputs
+  uo[0]: "Output 0"
+  uo[1]: "Output 1"
+  uo[2]: "Output 2"
+  uo[3]: "Output 3"
+  uo[4]: "Output 4"
+  uo[5]: "Output 5"
+  uo[6]: "Output 6"
+  uo[7]: "Output 7"
+
+  # Bidirectional pins (SPI Control)
+  uio[0]: "SPI IO 0"
+  uio[1]: "SPI IO 1"
+  uio[2]: "SPI IO 2"
+  uio[3]: "SPI IO 3"
+  uio[4]: "SPI IO 4"
+  uio[5]: "SPI IO 5"
+  uio[6]: "SPI IO 6"
+  uio[7]: "SPI IO 7"
+
+# Do not change!
+yaml_version: 6
