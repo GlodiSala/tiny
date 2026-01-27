@@ -51,7 +51,7 @@ module tt_um_cpu (
     wire branch_taken;
     wire [15:0] branch_target;
 
-    // Signaux SPI
+    // Signaux SPI - ✅ Seulement ceux qui existent !
     wire spi_cs, spi_sclk;
     wire spi_io0_o, spi_io0_oe, spi_io0_i;
     wire spi_io1_i;
@@ -70,7 +70,7 @@ module tt_um_cpu (
         .spi_io0_o(spi_io0_o),
         .spi_io0_oe(spi_io0_oe),
         .spi_io0_i(spi_io0_i),
-        .spi_io1_i(spi_io1_i)
+        .spi_io1_i(spi_io1_i)  // ✅ Seulement l'entrée MISO
     );
 
     // ========================================================================
@@ -122,7 +122,7 @@ module tt_um_cpu (
         .alu_src(alu_src),
         .alu_immediate(alu_immediate),
         .flag_write(flag_write),
-        // ❌ SUPPRIMÉ : .is_branch(is_branch_unused),
+        // ✅ is_branch supprimé complètement
         .branch_type(branch_type),
         .branch_offset(branch_offset)
     );
