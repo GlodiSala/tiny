@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: GitHub Action for Tiny Tapeout
-        uses: TinyTapeout/tt-gds-action@v2
+        uses: TinyTapeout/tt-gds-action@tt08
         with:
           pdk_root: ${{ env.PDK_ROOT }}
           pdk_tag: sky130B
