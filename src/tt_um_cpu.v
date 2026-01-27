@@ -13,15 +13,16 @@ module tt_um_cpu (
 
     wire rst = !rst_n;
 
-
-    // Simplifier le buffer MISO (1 étage suffit maintenant)
+    // ========================================================================
+    // BUFFER MISO (1 ÉTAGE SUFFISANT)
+    // ========================================================================
     reg spi_miso_buf;
     
     always @(posedge clk) begin
         if (rst) begin
             spi_miso_buf <= 1'b0;
         end else begin
-            spi_miso_buf <= uio_in[2];  // 1 seul registre !
+            spi_miso_buf <= uio_in[2];
         end
     end
 
@@ -52,14 +53,12 @@ module tt_um_cpu (
     wire [15:0] branch_target;
 
     // Signaux SPI
-    wire spi_cs, spi_sclk;
-    wire spi_io0_o, spi_io0_oe, spi_io0_i;
-    wire spi_io1_i;
+    wire spi_cs, spi_sck, spi_mosi;
 
     // ========================================================================
-    // PROGRAM MEMORY (SPI)
+    // PROGRAM MEMORY (SPI RAM)
     // ========================================================================
-        ProgramMemory_SPI_RAM program_mem (
+    ProgramMemory_SPI_RAM program_mem (
         .clk(clk),
         .rst(rst | !ena),
         .address(pc_current),
@@ -68,14 +67,12 @@ module tt_um_cpu (
         .spi_cs(spi_cs),
         .spi_sck(spi_sck),
         .spi_mosi(spi_mosi),
-        .spi_miso(spi_miso_buf)  // Signal bufférisé
+        .spi_miso(spi_miso_buf)
     );
 
     // ========================================================================
     // MAPPING SPI (STANDARD TINY TAPEOUT)
     // ========================================================================
-       wire spi_cs, spi_sck, spi_mosi;
-
     assign uio_out[0] = spi_cs;
     assign uio_oe[0]  = 1'b1;
     
@@ -87,6 +84,9 @@ module tt_um_cpu (
     
     assign uio_out[3] = spi_sck;
     assign uio_oe[3]  = 1'b1;
+
+    assign uio_out[7:4] = 4'b0000;
+    assign uio_oe[7:4]  = 4'b0000;
 
     // ========================================================================
     // MODULES INTERNES
@@ -171,13 +171,10 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // ANCRAGE PHYSIQUE POUR SIGNAUX INUTILISÉS (CRITIQUE POUR ROUTAGE ASIC)
+    // ANCRAGE PHYSIQUE SIGNAUX INUTILISÉS
     // ========================================================================
-    // XOR de tous les signaux inutilisés pour créer une dépendance réelle
-    wire logic_anchor = ^ui_in ^ uio_in[0] ^ (^uio_in[7:3]);
+    wire logic_anchor = ^ui_in ^ uio_in[0] ^ uio_in[1] ^ (^uio_in[7:3]);
 
-    // Injection dans uo_out pour forcer le routeur à tirer les fils
-    // Le AND avec 0 annule l'effet logique MAIS force le routage physique
     assign uo_out[7:1] = pc_current[7:1];
     assign uo_out[0]   = pc_current[0] ^ (logic_anchor & 1'b0);
 
