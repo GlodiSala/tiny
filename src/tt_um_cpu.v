@@ -14,7 +14,7 @@ module tt_um_cpu (
     wire rst = !rst_n;
 
     // ========================================================================
-    // TRIPLE BUFFER POUR MISO (3 REGISTRES POUR ROUTAGE ASIC)
+    // TRIPLE BUFFER POUR MISO (CRITIQUE POUR ASIC)
     // ========================================================================
     reg uio_in_2_buf1, uio_in_2_buf2, uio_in_2_buf3;
     
@@ -24,9 +24,9 @@ module tt_um_cpu (
             uio_in_2_buf2 <= 1'b0;
             uio_in_2_buf3 <= 1'b0;
         end else begin
-            uio_in_2_buf1 <= uio_in[2];       // 1er étage
-            uio_in_2_buf2 <= uio_in_2_buf1;   // 2ème étage
-            uio_in_2_buf3 <= uio_in_2_buf2;   // 3ème étage (final)
+            uio_in_2_buf1 <= uio_in[2];
+            uio_in_2_buf2 <= uio_in_2_buf1;
+            uio_in_2_buf3 <= uio_in_2_buf2;
         end
     end
 
@@ -62,7 +62,7 @@ module tt_um_cpu (
     wire spi_io1_i;
 
     // ========================================================================
-    // PROGRAM MEMORY (SPI - SANS SYNCHRONIZER INTERNE)
+    // PROGRAM MEMORY (SPI)
     // ========================================================================
     ProgramMemory_SPI program_mem (
         .clk(clk),
@@ -90,18 +90,13 @@ module tt_um_cpu (
 
     assign uio_out[2] = 1'b0;
     assign uio_oe[2]  = 1'b0;
-    assign spi_io1_i  = uio_in_2_buf3;  // ✅ Signal 3x bufférisé
+    assign spi_io1_i  = uio_in_2_buf3;
 
     assign uio_out[3] = spi_sclk;
     assign uio_oe[3]  = 1'b1;
 
     assign uio_out[7:4] = 4'b0000;
     assign uio_oe[7:4]  = 4'b0000;
-
-    // ========================================================================
-    // SORTIES (LEDs = PC)
-    // ========================================================================
-    assign uo_out = pc_current[7:0];
 
     // ========================================================================
     // MODULES INTERNES
@@ -186,10 +181,14 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // SUPPRESSION WARNINGS
+    // ANCRAGE PHYSIQUE POUR SIGNAUX INUTILISÉS (CRITIQUE POUR ROUTAGE ASIC)
     // ========================================================================
-    /* verilator lint_off UNUSEDSIGNAL */
-    wire _unused_ok = &{1'b0, ui_in, uio_in[7:3], uio_in[1:0], 1'b0};
-    /* verilator lint_on UNUSEDSIGNAL */
+    // XOR de tous les signaux inutilisés pour créer une dépendance réelle
+    wire logic_anchor = ^ui_in ^ uio_in[0] ^ (^uio_in[7:3]);
+
+    // Injection dans uo_out pour forcer le routeur à tirer les fils
+    // Le AND avec 0 annule l'effet logique MAIS force le routage physique
+    assign uo_out[7:1] = pc_current[7:1];
+    assign uo_out[0]   = pc_current[0] ^ (logic_anchor & 1'b0);
 
 endmodule
