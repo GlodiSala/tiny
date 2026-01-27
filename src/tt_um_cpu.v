@@ -108,31 +108,23 @@ module tt_um_cpu (
         .addr(alu_result), .wdata(reg_data2), .rdata(mem_rdata)
     );
 
+   // ========================================================================
+    // ANCRAGE TOTAL (Anti-Optimisation Nucléaire)
     // ========================================================================
-    // ANCRAGE DES SIGNAUX "A RISQUE"
-    // ========================================================================
+    
+    // uo_out[3:0] : Affichage des bits bas du PC
+    assign uo_out[3:0] = pc_current[3:0];
 
-    // 1. On règle le warning sur uio_in[7:3, 0] en les XORant
-    wire unused_uio = ^uio_in[7:3] ^ uio_in[0];
+    // uo_out[4] : On sort directement ENA (indispensable)
+    assign uo_out[4] = ena;
 
-    // 2. On règle le problème de 'ena' et 'ui_in'
-    // On va utiliser uo_out[4] et uo_out[7] qui étaient "statiques" 
-    // pour sortir ces signaux. C'est la seule façon d'être SÛR qu'ils restent.
+    // uo_out[5] : On fait un XOR de tous les bits de ui_in (sauve les 8 pins ui_in)
+    assign uo_out[5] = ^ui_in;
 
-    assign uo_out[0] = pc_current[0];
-    assign uo_out[1] = pc_current[1];
-    assign uo_out[2] = pc_current[2];
-    assign uo_out[3] = pc_current[3];
+    // uo_out[6] : On fait un XOR de tous les bits de uio_in (sauve uio_in[2] et les autres)
+    assign uo_out[6] = ^uio_in;
 
-    // On sort 'ena' sur la pin 4. Si ena meurt, la pin 4 meurt. 
-    // OpenLane est obligé de garder 'ena'.
-    assign uo_out[4] = ena; 
-
-    assign uo_out[5] = pc_current[5];
-    assign uo_out[6] = pc_current[6];
-
-    // On sort le XOR des signaux inutilisés (ui_in et reste de uio) sur la pin 7
-    // On ajoute spi_io1_i dedans pour être certain que le MISO est routé aussi.
-    assign uo_out[7] = (^ui_in) ^ unused_uio ^ spi_io1_i ^ is_branch;
+    // uo_out[7] : Signal de debug (par exemple is_branch ou PC bit haut)
+    assign uo_out[7] = pc_current[4];
 
 endmodule
