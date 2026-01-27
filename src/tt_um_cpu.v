@@ -11,10 +11,10 @@ module tt_um_cpu (
     input  wire       rst_n
 );
 
-    // ========================================================================
-    // SUPPRESSION DES WARNINGS : Déclarer explicitement les signaux inutilisés
-    // ========================================================================
+    // Suppression warnings pour signaux inutilisés
+    /* verilator lint_off UNUSEDSIGNAL */
     wire _unused_ok = &{1'b0, ui_in, uio_in[7:4], uio_in[1:0], 1'b0};
+    /* verilator lint_on UNUSEDSIGNAL */
 
     wire rst = !rst_n;
 
@@ -50,7 +50,7 @@ module tt_um_cpu (
     wire spi_io1_o, spi_io1_oe, spi_io1_i;
 
     // ========================================================================
-    // PROGRAM MEMORY (SPI)
+    // PROGRAM MEMORY (SPI AVEC SYNCHRONIZER)
     // ========================================================================
     ProgramMemory_SPI program_mem (
         .clk(clk),
@@ -90,7 +90,7 @@ module tt_um_cpu (
     assign uio_oe[7:4]  = 4'b0000;
 
     // ========================================================================
-    // SORTIES (LEDs = PC bas)
+    // SORTIES (LEDs = PC)
     // ========================================================================
     assign uo_out = pc_current[7:0];
 
@@ -118,7 +118,7 @@ module tt_um_cpu (
         .alu_src(alu_src),
         .alu_immediate(alu_immediate),
         .flag_write(flag_write),
-        .is_branch(),  // ✅ Non connecté explicitement
+        .is_branch(/* unused */),  /* verilator lint_off PINCONNECTEMPTY */
         .branch_type(branch_type),
         .branch_offset(branch_offset)
     );
