@@ -8,42 +8,22 @@ module ProgramMemory_SPI (
     output reg          spi_cs,   
     output reg          spi_sclk, 
 
-    // MOSI (Sortie/Entrée bidirectionnelle)
     output wire         spi_io0_o,
     output wire         spi_io0_oe,
     input  wire         spi_io0_i,
 
-    // MISO (Entrée uniquement) ✅ Pas de sortie !
-    input  wire         spi_io1_i    
+    input  wire         spi_io1_i  // ✅ Signal DÉJÀ synchronisé
 );
 
-    // ========================================================================
-    // SYNCHRONIZER POUR MISO
-    // ========================================================================
-    reg spi_io1_sync1, spi_io1_sync2;
-    
-    always @(posedge clk) begin
-        if (rst) begin
-            spi_io1_sync1 <= 1'b0;
-            spi_io1_sync2 <= 1'b0;
-        end else begin
-            spi_io1_sync1 <= spi_io1_i;
-            spi_io1_sync2 <= spi_io1_sync1;
-        end
-    end
-    
-    wire spi_io1_safe = spi_io1_sync2;
+    // ❌ SUPPRIMÉ : Synchronizer interne (déjà dans tt_um_CPU)
 
-    // ========================================================================
     // ÉTATS
-    // ========================================================================
     localparam STATE_IDLE  = 3'd0, 
                STATE_CMD   = 3'd1,
                STATE_ADDR  = 3'd2, 
                STATE_READ  = 3'd3, 
                STATE_READY = 3'd4;
 
-    // REGISTRES
     reg [2:0]  state;
     reg [4:0]  bit_cnt;
     reg [23:0] shift_reg;
@@ -51,15 +31,12 @@ module ProgramMemory_SPI (
     reg [15:0] last_address;
     reg        spi_phase;
 
-    // LOGIQUE I/O
     assign spi_io0_oe = (state == STATE_CMD || state == STATE_ADDR);
     assign spi_io0_o  = shift_reg[23];
     assign instruction = instr_buffer;
 
-    // Suppression warning
     wire _unused_spi = &{spi_io0_i, 1'b0};
 
-    // GÉNÉRATION HORLOGE SPI
     always @(posedge clk) begin
         if (rst || spi_cs) begin
             spi_sclk  <= 0;
@@ -70,9 +47,6 @@ module ProgramMemory_SPI (
         end
     end
 
-    // ========================================================================
-    // MACHINE À ÉTATS
-    // ========================================================================
     always @(posedge clk) begin
         if (rst) begin
             state <= STATE_IDLE;
@@ -123,7 +97,8 @@ module ProgramMemory_SPI (
 
                 STATE_READ: begin
                     if (spi_phase) begin
-                        instr_buffer <= {instr_buffer[14:0], spi_io1_safe}; 
+                        // ✅ Utiliser directement spi_io1_i (déjà synchronisé)
+                        instr_buffer <= {instr_buffer[14:0], spi_io1_i}; 
                         
                         if (bit_cnt == 15) begin
                             state <= STATE_READY;
@@ -140,9 +115,7 @@ module ProgramMemory_SPI (
                     state <= STATE_IDLE;
                 end
 
-                default: begin
-                    state <= STATE_IDLE;
-                end
+                default: state <= STATE_IDLE;
             endcase
         end
     end
