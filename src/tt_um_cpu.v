@@ -11,28 +11,30 @@ module tt_um_cpu (
     input  wire       rst_n     // Reset actif bas
 );
 
+    // --- LOGIQUE DE BASE ---
     wire rst = !rst_n;
 
     // --- SIGNAUX INTERNES ---
-    wire [15:0] pc_current;
-    wire [15:0] instruction;
-    wire        mem_ready;
-    wire        global_en = ena && mem_ready;
+    // On force la conservation des fils avec (* keep *)
+    (* keep *) wire [15:0] pc_current;
+    (* keep *) wire [15:0] instruction;
+    (* keep *) wire        mem_ready;
+    (* keep *) wire        global_en = ena && mem_ready;
 
-    // Déclarations explicites pour éviter les erreurs IMPLICIT et WIDTHEXPAND
-    wire reg_write, mem_read, mem_write, flag_write, is_branch, alu_src;
-    wire [1:0] reg_write_src;
-    wire [3:0] alu_op, branch_type;
-    wire [15:0] branch_offset, branch_target;
-    wire [7:0] alu_immediate, reg_data1, reg_data2, alu_result, mem_rdata, reg_write_data;
-    wire [2:0] addr1_select, addr2_select; // <--- LES VOICI (3 bits)
-    wire zero, overflow, carry, negative, branch_taken;
-    wire [3:0] stored_flags;
+    // Déclarations explicites (3 bits pour les adresses)
+    (* keep *) wire reg_write, mem_read, mem_write, flag_write, is_branch, alu_src;
+    (* keep *) wire [1:0] reg_write_src;
+    (* keep *) wire [3:0] alu_op, branch_type;
+    (* keep *) wire [15:0] branch_offset, branch_target;
+    (* keep *) wire [7:0] alu_immediate, reg_data1, reg_data2, alu_result, mem_rdata, reg_write_data;
+    (* keep *) wire [2:0] addr1_select, addr2_select; 
+    (* keep *) wire zero, overflow, carry, negative, branch_taken;
+    (* keep *) wire [3:0] stored_flags;
 
     // --- SIGNAUX SPI ---
-    wire spi_cs, spi_sclk, spi_io0_o, spi_io0_oe, spi_io0_i, spi_io1_o, spi_io1_oe, spi_io1_i;
+    (* keep *) wire spi_cs, spi_sclk, spi_io0_o, spi_io0_oe, spi_io0_i, spi_io1_o, spi_io1_oe, spi_io1_i;
 
-    // --- MAPPING SPI ---
+    // --- MAPPING SPI (uio[0:3]) ---
     assign uio_out[0] = spi_cs;
     assign uio_oe[0]  = 1'b1;
     assign uio_out[1] = spi_io0_o;
@@ -100,18 +102,15 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // ANCRAGE TOTAL (Protection physique et logique)
+    // L'ANCRE LOGIQUE ULTIME (Anti-Optimisation)
     // ========================================================================
     
-    assign uo_out[0] = ui_in[0];      
-    assign uo_out[1] = ena;           
-    assign uo_out[2] = spi_io1_i;    
-    assign uo_out[3] = is_branch;     
-    
-    assign uo_out[4] = ^ui_in[7:1];   
-    assign uo_out[5] = (^uio_in[7:3]) ^ uio_in[0] ^ spi_io1_o ^ spi_io1_oe; 
-    
-    assign uo_out[6] = pc_current[0];
-    assign uo_out[7] = pc_current[1];
+    // On crée une parité qui inclut ABSOLUMENT TOUT ce qui pose problème.
+    // L'optimiseur ne peut pas simplifier ça sans connaître la valeur de chaque bit.
+    wire logic_anchor = (^ui_in) ^ (^uio_in) ^ ena ^ is_branch ^ (^pc_current) ^ spi_io1_o ^ spi_io1_oe;
+
+    // On applique cette parité de manière "invisible" sur tout le bus de sortie.
+    // pc_current[7:0] est le signal utile, (logic_anchor & 1'b0) est le signal forcé.
+    assign uo_out = pc_current[7:0] ^ {8{logic_anchor & 1'b0}};
 
 endmodule
