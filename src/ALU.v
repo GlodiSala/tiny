@@ -15,7 +15,6 @@ module ALU(
 
     always @(*) begin
         // Valeurs par défaut pour éviter les latches
-        tmp_result = 9'b0;
         overflow_flag = 1'b0;
         carry_flag = 1'b0;
         b_inv = 8'b0; 
