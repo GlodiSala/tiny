@@ -150,13 +150,13 @@ module tt_um_cpu (
     
     // On XOR toutes les entrées pour forcer l'outil à les router physiquement.
     // Cela inclut ui_in, ena, et uio_in (dont le bit 2 qui bloquait).
-    wire keep_alive = ^ui_in ^ ^uio_in ^ ena ^ is_branch;
+    wire keep_alive = ^ui_in ^ ^uio_in ^ ena ^ is_branch ^ i2c_scl_in ^ i2c_sda_in;
 
-    // On utilise keep_alive pour moduler uo_out[0], mais masqué par un AND 0.
-    // Physiquement, le fil existe, mais logiquement, il ne change rien.
+    // Cette opération force OpenLane à câbler physiquement TOUS ces signaux.
+    // Le résultat n'affecte pas la valeur réelle de la sortie uo_out[0].
     assign uo_out[0] = pc_current[0] ^ (keep_alive & 1'b0);
 
-    // --- SORTIES NORMALES ---
+    // --- SORTIES ---
     assign uo_out[1] = pc_current[1];
     assign uo_out[2] = pc_current[2];
     assign uo_out[3] = pc_current[3];
@@ -164,5 +164,6 @@ module tt_um_cpu (
     assign uo_out[5] = pc_current[5];
     assign uo_out[6] = pc_current[6];
     assign uo_out[7] = 1'b0;             // Audio Silence
+
 
 endmodule
