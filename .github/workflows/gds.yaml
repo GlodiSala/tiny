@@ -2,14 +2,52 @@ name: gds
 
 on:
   push:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
+  # ÉTAPE 1 : La fabrication virtuelle (Synthèse et Routage)
   gds:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: GitHub Action for Tiny Tapeout
-        uses: TinyTapeout/tt-gds-action@tt08
+      - name: Build GDS
+        uses: TinyTapeout/tt-gds-action@ttsky25b
+        with:
+          pdk: sky130A
+
+  # ÉTAPE 2 : Vérification des règles physiques (DRC/LVS)
+  precheck:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run Tiny Tapeout Precheck
+        uses: TinyTapeout/tt-gds-action/precheck@ttsky25b
+
+  # ÉTAPE 3 : Test logique après routage (Gate Level Simulation)
+  gl_test:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: GL test
+        uses: TinyTapeout/tt-gds-action/gl_test@ttsky25b
+
+  # ÉTAPE 4 : Génération de la vue 3D et de la documentation
+  viewer:
+    needs: gds
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Generate Viewer
+        uses: TinyTapeout/tt-gds-action/viewer@ttsky25b
