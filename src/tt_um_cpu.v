@@ -11,8 +11,13 @@ module tt_um_cpu (
     input  wire       rst_n
 );
 
+    // ========================================================================
+    // SUPPRESSION DES WARNINGS : Déclarer explicitement les signaux inutilisés
+    // ========================================================================
+    wire _unused_ok = &{1'b0, ui_in, uio_in[7:4], uio_in[1:0], 1'b0};
+
     wire rst = !rst_n;
-    
+
     // ========================================================================
     // SIGNAUX INTERNES
     // ========================================================================
@@ -20,7 +25,7 @@ module tt_um_cpu (
     wire [15:0] instruction;
     wire        mem_ready;
 
-    wire reg_write, mem_read, mem_write, flag_write, is_branch, alu_src;
+    wire reg_write, mem_read, mem_write, flag_write, alu_src;
     wire [1:0] reg_write_src;
     wire [3:0] alu_op;
     wire [3:0] branch_type;
@@ -45,17 +50,11 @@ module tt_um_cpu (
     wire spi_io1_o, spi_io1_oe, spi_io1_i;
 
     // ========================================================================
-    // GESTION DU SIGNAL ENA (Power Management)
-    // ========================================================================
-    wire cpu_enable;
-    assign cpu_enable = ena & rst_n;  // CPU actif seulement si ena=1 et reset=0
-
-    // ========================================================================
     // PROGRAM MEMORY (SPI)
     // ========================================================================
     ProgramMemory_SPI program_mem (
-        .clk(clk & cpu_enable),  // ✅ Clock gating avec ena
-        .rst(rst),
+        .clk(clk),
+        .rst(rst | !ena),
         .address(pc_current),
         .instruction(instruction),
         .ready(mem_ready),
@@ -70,10 +69,8 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // MAPPING SPI VERS TINY TAPEOUT PINS
+    // MAPPING SPI (Standard Tiny Tapeout)
     // ========================================================================
-    // Standard TT: uio[0]=CS, uio[1]=SCLK, uio[2]=MOSI, uio[3]=MISO
-    
     assign uio_out[0] = spi_cs;
     assign uio_oe[0]  = 1'b1;
 
@@ -88,12 +85,12 @@ module tt_um_cpu (
     assign uio_oe[3]  = spi_io1_oe;
     assign spi_io1_i  = uio_in[3];
 
-    // Pins inutilisés (IMPORTANT: les mettre à 0 proprement)
+    // Pins inutilisés
     assign uio_out[7:4] = 4'b0000;
     assign uio_oe[7:4]  = 4'b0000;
 
     // ========================================================================
-    // SORTIES (LEDs = PC)
+    // SORTIES (LEDs = PC bas)
     // ========================================================================
     assign uo_out = pc_current[7:0];
 
@@ -102,7 +99,7 @@ module tt_um_cpu (
     // ========================================================================
     ProgramCounter pc (
         .clk(clk),
-        .rst(rst | !ena),  // ✅ Reset si ena=0
+        .rst(rst | !ena),
         .mem_ready(mem_ready),
         .branch_en(branch_taken),
         .branch_addr(branch_target),
@@ -121,7 +118,7 @@ module tt_um_cpu (
         .alu_src(alu_src),
         .alu_immediate(alu_immediate),
         .flag_write(flag_write),
-        .is_branch(is_branch),
+        .is_branch(),  // ✅ Non connecté explicitement
         .branch_type(branch_type),
         .branch_offset(branch_offset)
     );
@@ -130,7 +127,7 @@ module tt_um_cpu (
     
     RegisterFile regfile (
         .clk(clk),
-        .rst(rst | !ena),  // ✅ Reset si ena=0
+        .rst(rst | !ena),
         .write_en(reg_write),
         .enable(mem_ready),
         .addr_wr(instruction[11:9]),
@@ -156,7 +153,7 @@ module tt_um_cpu (
 
     FlagRegister flag_reg (
         .clk(clk),
-        .rst(rst | !ena),  // ✅ Reset si ena=0
+        .rst(rst | !ena),
         .write(flag_write && mem_ready),
         .flags_alu({overflow, carry, negative, zero}),
         .stored_flags(stored_flags)
@@ -174,7 +171,7 @@ module tt_um_cpu (
     DataMemory data_mem (
         .clk(clk),
         .mem_read(mem_read),
-        .mem_write(mem_write && mem_ready && cpu_enable),  // ✅ Désactiver si ena=0
+        .mem_write(mem_write && mem_ready && ena),
         .addr(alu_result),
         .wdata(reg_data2),
         .rdata(mem_rdata)
