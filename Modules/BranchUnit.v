@@ -34,5 +34,5 @@ always @(*) begin // logique combinatoire
         pc_next = pc_current + 1;              // Next instruction
     end
 end
-
+wire [1:0] _unused_flags = stored_flags[3:2];
 endmodule
