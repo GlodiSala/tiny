@@ -114,17 +114,30 @@ module tt_um_cpu (
     // On mappe DIRECTEMENT les entrées problématiques sur les sorties uo_out
     // Si l'entrée est branchée à une sortie physique, elle ne peut PAS être supprimée.
     
-    assign uo_out[0] = ui_in[0];      // Sauve ui_in[0]
-    assign uo_out[1] = ena;           // Sauve ena
-    assign uo_out[2] = spi_io1_i;    // Sauve uio_in[2] (MISO)
-    assign uo_out[3] = is_branch;     // Sauve le signal interne is_branch
+    // ========================================================================
+    // MAPPING DES SORTIES ET NETTOYAGE DES WARNINGS
+    // ========================================================================
     
-    // On XOR le reste pour nettoyer les warnings UNUSEDSIGNAL du linter
-    assign uo_out[4] = ^ui_in[7:1];   // Sauve le reste de ui_in
-    assign uo_out[5] = ^uio_in[7:3] ^ uio_in[0]; // Sauve le reste de uio_in
-    
-    // On garde deux LEDs pour voir que le PC bouge quand même !
-    assign uo_out[6] = pc_current[0];
-    assign uo_out[7] = pc_current[1];
+    // uo_out[3:0] : Bas du Program Counter (PC)
+    assign uo_out[3:0] = pc_current[3:0];
+
+    // uo_out[4] : ANCRE PHYSIQUE pour 'ena'
+    // On le branche directement sur une sortie pour que le routeur ne le coupe pas.
+    assign uo_out[4] = ena;
+
+    // uo_out[5] : ANCRE PHYSIQUE pour 'ui_in[0]'
+    // Même raison : on force un fil de cuivre direct entre l'entrée 0 et la sortie 5.
+    assign uo_out[5] = ui_in[0];
+
+    // uo_out[6] : LA "POUBELLE LOGIQUE" (Consomme tous les signaux inutilisés)
+    // On XOR tout ce que le linter trouve suspect :
+    // - Le reste de ui_in [7:1]
+    // - Le reste de uio_in [7:3] et [1:0]
+    // - Les signaux SPI inutilisés (io1_o et io1_oe)
+    assign uo_out[6] = (^ui_in[7:1]) ^ (^uio_in[7:3]) ^ uio_in[0] ^ spi_io1_o ^ spi_io1_oe;
+
+    // uo_out[7] : ANCRE PHYSIQUE pour 'uio_in[2]' (MISO)
+    // On ajoute 'is_branch' dedans pour le sécuriser aussi.
+    assign uo_out[7] = spi_io1_i ^ is_branch;
 
 endmodule
