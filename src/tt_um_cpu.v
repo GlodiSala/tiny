@@ -11,16 +11,14 @@ module tt_um_cpu (
     input  wire       rst_n
 );
 
-    // Suppression warnings pour signaux inutilisés
+    // Suppression warnings
     /* verilator lint_off UNUSEDSIGNAL */
-    wire _unused_ok = &{1'b0, ui_in, uio_in[7:4], uio_in[1:0], 1'b0};
+    wire _unused_ok = &{1'b0, ui_in, uio_in[7:3], 1'b0};  // ✅ uio_in[2] utilisé
     /* verilator lint_on UNUSEDSIGNAL */
 
     wire rst = !rst_n;
 
-    // ========================================================================
     // SIGNAUX INTERNES
-    // ========================================================================
     wire [15:0] pc_current;
     wire [15:0] instruction;
     wire        mem_ready;
@@ -50,7 +48,7 @@ module tt_um_cpu (
     wire spi_io1_o, spi_io1_oe, spi_io1_i;
 
     // ========================================================================
-    // PROGRAM MEMORY (SPI AVEC SYNCHRONIZER)
+    // PROGRAM MEMORY (SPI)
     // ========================================================================
     ProgramMemory_SPI program_mem (
         .clk(clk),
@@ -69,21 +67,25 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // MAPPING SPI (Standard Tiny Tapeout)
+    // MAPPING SPI ✅ CORRIGÉ SELON STANDARD TT
     // ========================================================================
+    // uio[0] = CS
     assign uio_out[0] = spi_cs;
     assign uio_oe[0]  = 1'b1;
 
-    assign uio_out[1] = spi_sclk;
-    assign uio_oe[1]  = 1'b1;
+    // uio[1] = MOSI (IO0) - Bidirectionnel
+    assign uio_out[1] = spi_io0_o;
+    assign uio_oe[1]  = spi_io0_oe;
+    assign spi_io0_i  = uio_in[1];
 
-    assign uio_out[2] = spi_io0_o;
-    assign uio_oe[2]  = spi_io0_oe;
-    assign spi_io0_i  = uio_in[2];
+    // uio[2] = MISO (IO1) - Entrée uniquement
+    assign uio_out[2] = 1'b0;          // ✅ Pas de sortie
+    assign uio_oe[2]  = 1'b0;          // ✅ Toujours en entrée
+    assign spi_io1_i  = uio_in[2];     // ✅ MISO vient de uio_in[2]
 
-    assign uio_out[3] = spi_io1_o;
-    assign uio_oe[3]  = spi_io1_oe;
-    assign spi_io1_i  = uio_in[3];
+    // uio[3] = SCK - Sortie uniquement
+    assign uio_out[3] = spi_sclk;
+    assign uio_oe[3]  = 1'b1;
 
     // Pins inutilisés
     assign uio_out[7:4] = 4'b0000;
@@ -118,7 +120,7 @@ module tt_um_cpu (
         .alu_src(alu_src),
         .alu_immediate(alu_immediate),
         .flag_write(flag_write),
-        .is_branch(/* unused */),  /* verilator lint_off PINCONNECTEMPTY */
+        .is_branch(),  // ✅ Laisser vide
         .branch_type(branch_type),
         .branch_offset(branch_offset)
     );
