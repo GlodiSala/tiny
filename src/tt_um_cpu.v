@@ -14,15 +14,14 @@ module tt_um_cpu (
     wire rst = !rst_n;
 
     // ========================================================================
-    // BUFFER MISO (1 ÉTAGE SUFFISANT)
+    // SYNCHRONISATION MISO (1 REGISTRE)
     // ========================================================================
-    reg spi_miso_buf;
-    
+    reg miso_sync;
     always @(posedge clk) begin
         if (rst) begin
-            spi_miso_buf <= 1'b0;
+            miso_sync <= 1'b0;
         end else begin
-            spi_miso_buf <= uio_in[2];
+            miso_sync <= uio_in[2];
         end
     end
 
@@ -56,7 +55,7 @@ module tt_um_cpu (
     wire spi_cs, spi_sck, spi_mosi;
 
     // ========================================================================
-    // PROGRAM MEMORY (SPI RAM)
+    // PROGRAM MEMORY (TON MODULE SPI)
     // ========================================================================
     ProgramMemory_SPI_RAM program_mem (
         .clk(clk),
@@ -67,11 +66,11 @@ module tt_um_cpu (
         .spi_cs(spi_cs),
         .spi_sck(spi_sck),
         .spi_mosi(spi_mosi),
-        .spi_miso(spi_miso_buf)
+        .spi_miso(miso_sync)
     );
 
     // ========================================================================
-    // MAPPING SPI (STANDARD TINY TAPEOUT)
+    // MAPPING SPI (STANDARD)
     // ========================================================================
     assign uio_out[0] = spi_cs;
     assign uio_oe[0]  = 1'b1;
@@ -79,7 +78,7 @@ module tt_um_cpu (
     assign uio_out[1] = spi_mosi;
     assign uio_oe[1]  = 1'b1;
     
-    assign uio_out[2] = 1'b0;
+    assign uio_out[2] = 1'b0;      // MISO en entrée
     assign uio_oe[2]  = 1'b0;
     
     assign uio_out[3] = spi_sck;
@@ -171,11 +170,20 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // ANCRAGE PHYSIQUE SIGNAUX INUTILISÉS
+    // ANCRAGE PHYSIQUE ET NETTOYAGE (Version Finale Corrigée)
     // ========================================================================
-    wire logic_anchor = ^ui_in ^ uio_in[0] ^ uio_in[1] ^ (^uio_in[7:3]);
-
+    
+    // 1. On regroupe tout ce qui est "inutilisé" pour le linter
+    wire _unused_xor = (^ui_in[7:1]) ^ (^uio_in[7:3]) ^ uio_in[1] ^ uio_in[0];
+    
+    // 2. On regroupe les signaux critiques pour le routage (ena, miso, ui0)
+    wire logic_shield = ui_in[0] ^ ena ^ miso_sync ^ branch_taken;
+    
+    // 3. UNE SEULE assignation pour tout le bus uo_out
+    // Bit 0 : PC + Bouclier + Bits inutilisés
+    // Bits 7 à 1 : Reste du PC
+    assign uo_out[0]   = pc_current[0] ^ logic_shield ^ _unused_xor;
     assign uo_out[7:1] = pc_current[7:1];
-    assign uo_out[0]   = pc_current[0] ^ (logic_anchor & 1'b0);
 
 endmodule
+
