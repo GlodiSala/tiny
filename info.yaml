@@ -1,6 +1,9 @@
 --- 
 # Tiny Tapeout project information
 project:
+  yaml_version: 6
+  tiles: "1x1"
+  
   title: "Microprocesseur 8-bit SPI"
   author: "GlodiSala"
   discord: ""
@@ -26,7 +29,7 @@ project:
 
   top_module:  "tt_um_cpu"
 
-# Configuration des Pins
+# Configuration des Pins (Documentation)
 inputs:
   - ui_in[0]
   - ui_in[1]
@@ -54,6 +57,3 @@ bidirectional:
   - uio_out[5]
   - uio_out[6]
   - uio_out[7]
-tiles: "1x1"          
-yaml_version: 6
-
