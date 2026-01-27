@@ -1,122 +1,105 @@
-module ProgramMemory_SPI (
-    input  wire         clk,      
-    input  wire         rst,      
-    input  wire [15:0]  address,  
-    output wire [15:0]  instruction, 
-    output reg          ready,    
+module ProgramMemory_SPI_RAM (
+    input  wire        clk,
+    input  wire        rst,
+    input  wire [15:0] address,
+    output reg  [15:0] instruction,
+    output reg         ready,
     
-    output reg          spi_cs,   
-    output reg          spi_sclk, 
-
-    output wire         spi_io0_o,
-    output wire         spi_io0_oe,
-    input  wire         spi_io0_i,
-
-    input  wire         spi_io1_i  // ✅ Signal DÉJÀ synchronisé
+    // SPI vers RP2040
+    output reg         spi_cs,
+    output reg         spi_sck,
+    output reg         spi_mosi,
+    input  wire        spi_miso
 );
 
-    // ❌ SUPPRIMÉ : Synchronizer interne (déjà dans tt_um_CPU)
+    // États simplifiés
+    localparam IDLE  = 2'd0,
+               CMD   = 2'd1,
+               ADDR  = 2'd2,
+               DATA  = 2'd3;
 
-    // ÉTATS
-    localparam STATE_IDLE  = 3'd0, 
-               STATE_CMD   = 3'd1,
-               STATE_ADDR  = 3'd2, 
-               STATE_READ  = 3'd3, 
-               STATE_READY = 3'd4;
-
-    reg [2:0]  state;
-    reg [4:0]  bit_cnt;
-    reg [23:0] shift_reg;
-    reg [15:0] instr_buffer;
-    reg [15:0] last_address;
-    reg        spi_phase;
-
-    assign spi_io0_oe = (state == STATE_CMD || state == STATE_ADDR);
-    assign spi_io0_o  = shift_reg[23];
-    assign instruction = instr_buffer;
-
-    wire _unused_spi = &{spi_io0_i, 1'b0};
-
-    always @(posedge clk) begin
-        if (rst || spi_cs) begin
-            spi_sclk  <= 0;
-            spi_phase <= 0;
-        end else begin
-            spi_phase <= ~spi_phase;        
-            spi_sclk  <= spi_phase;
-        end
-    end
+    reg [1:0] state;
+    reg [4:0] bit_cnt;
+    reg [7:0] cmd_byte;
+    reg [15:0] addr_buf;
+    reg [15:0] data_buf;
+    reg [15:0] last_addr;
 
     always @(posedge clk) begin
         if (rst) begin
-            state <= STATE_IDLE;
+            state <= IDLE;
             ready <= 0;
             spi_cs <= 1;
-            last_address <= 16'hFFFF;
-            instr_buffer <= 16'h0000;
+            spi_sck <= 0;
+            spi_mosi <= 0;
+            last_addr <= 16'hFFFF;
+            instruction <= 16'h0000;
         end else begin
             case (state)
-                STATE_IDLE: begin
+                IDLE: begin
                     ready <= 0;
-                    if (address != last_address) begin
-                        if (spi_cs == 0) begin
-                            spi_cs <= 1;
-                        end else begin
-                            spi_cs <= 0;
-                            shift_reg <= {8'h03, 16'h0000}; 
-                            state <= STATE_CMD;
-                            bit_cnt <= 0;
-                        end
+                    spi_sck <= 0;
+                    if (address != last_addr) begin
+                        spi_cs <= 0;           // Activer CS
+                        cmd_byte <= 8'h03;     // READ command
+                        addr_buf <= address;
+                        bit_cnt <= 0;
+                        state <= CMD;
+                    end else begin
+                        spi_cs <= 1;
+                        ready <= 1;            // Donnée déjà en cache
                     end
                 end
 
-                STATE_CMD: begin
-                    if (spi_phase) begin 
+                CMD: begin
+                    spi_mosi <= cmd_byte[7];
+                    spi_sck <= ~spi_sck;       // Toggle clock
+                    
+                    if (spi_sck) begin         // Sur front descendant
+                        cmd_byte <= {cmd_byte[6:0], 1'b0};
+                        bit_cnt <= bit_cnt + 1;
+                        
                         if (bit_cnt == 7) begin
                             bit_cnt <= 0;
-                            shift_reg <= {8'h00, address};
-                            state <= STATE_ADDR;
-                        end else begin
-                            shift_reg <= shift_reg << 1;
-                            bit_cnt <= bit_cnt + 1;
+                            state <= ADDR;
                         end
                     end
                 end
 
-                STATE_ADDR: begin
-                    if (spi_phase) begin 
-                        if (bit_cnt == 15) begin
-                            bit_cnt <= 0;
-                            state <= STATE_READ;
-                        end else begin
-                            shift_reg <= shift_reg << 1;
-                            bit_cnt <= bit_cnt + 1;
-                        end
-                    end
-                end
-
-                STATE_READ: begin
-                    if (spi_phase) begin
-                        // ✅ Utiliser directement spi_io1_i (déjà synchronisé)
-                        instr_buffer <= {instr_buffer[14:0], spi_io1_i}; 
+                ADDR: begin
+                    spi_mosi <= addr_buf[15];
+                    spi_sck <= ~spi_sck;
+                    
+                    if (spi_sck) begin
+                        addr_buf <= {addr_buf[14:0], 1'b0};
+                        bit_cnt <= bit_cnt + 1;
                         
                         if (bit_cnt == 15) begin
-                            state <= STATE_READY;
-                        end else begin
-                            bit_cnt <= bit_cnt + 1;
+                            bit_cnt <= 0;
+                            state <= DATA;
                         end
                     end
                 end
 
-                STATE_READY: begin
-                    ready <= 1;
-                    last_address <= address;
-                    spi_cs <= 1;
-                    state <= STATE_IDLE;
+                DATA: begin
+                    spi_mosi <= 0;             // Lecture uniquement
+                    spi_sck <= ~spi_sck;
+                    
+                    if (spi_sck) begin         // Capturer sur front montant
+                        data_buf <= {data_buf[14:0], spi_miso};
+                        bit_cnt <= bit_cnt + 1;
+                        
+                        if (bit_cnt == 15) begin
+                            instruction <= {data_buf[14:0], spi_miso};
+                            last_addr <= address;
+                            ready <= 1;
+                            spi_cs <= 1;       // Désactiver CS
+                            state <= IDLE;
+                        end
+                    end
                 end
-
-                default: state <= STATE_IDLE;
             endcase
         end
     end
+
 endmodule
