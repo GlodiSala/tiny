@@ -1,36 +1,33 @@
 --- 
 project:
   title: "Microprocesseur 8-bit SPI"
-  author: "Toi"
+  author: "GlodiSala"
   discord: ""
   description: "Un CPU 8-bit personnalisé avec mémoire externe SPI et Audio"
   language: "Verilog"
   clock_hz: 50000000 # 50MHz
 
-  # Comment ça marche (facultatif pour le test)
   how_it_works: "CPU custom architecture"
   how_to_test: "Testbench via SPI"
   external_hw: ""
 
-  # LES FICHIERS SOURCES (C'est le plus important !)
+  # FICHIERS DANS LE DOSSIER SRC
   source_files:
-    - "tt_um_CPU.v"          # Ton Top Module
-    - "ALU.v"
-    - "BranchUnit.v"
-    - "ControlUnit.v"
-    - "DataMemory.v"
-    - "FlagRegister.v"
-    - "ProgramCounter.v"
-    - "ProgramMemory_SPI.v"  # Version SPI
-    - "register_file.v"
-    - "AudioPWM.v"           # Si tu l'as créé, sinon retire cette ligne
-    - "defines.vh"
+    - "src/tt_um_CPU.v"
+    - "src/ALU.v"
+    - "src/BranchUnit.v"
+    - "src/ControlUnit.v"
+    - "src/DataMemory.v"
+    - "src/FlagRegister.v"
+    - "src/ProgramCounter.v"
+    - "src/ProgramMemory_SPI.v"
+    - "src/register_file.v"
+    - "src/AudioPWM.v"
+    - "src/defines.vh"
 
-  # LE NOM DE TON MODULE PRINCIPAL
-  # Attention : Doit correspondre exactement au nom 'module ...' dans tt_um_CPU.v
   top_module:  "tt_um_cpu"
 
-# Configuration des Pins (Pour la documentation)
+# Pins
   inputs:
     - ui_in[0]
     - ui_in[1]

@@ -1,45 +1,73 @@
 import os
+import shutil
 import subprocess
 
-# 1. Création de l'arborescence pour GitHub Actions
-workflows_dir = os.path.join(".github", "workflows")
-os.makedirs(workflows_dir, exist_ok=True)
+# 1. Création du dossier src
+if not os.path.exists("src"):
+    os.makedirs("src")
+    print("[OK] Dossier 'src' créé.")
 
-# 2. Création du fichier info.yaml (La carte d'identité de la puce)
-# J'ai mis tes fichiers basés sur ton log git précédent
-info_content = """--- 
+# 2. Liste des fichiers à déplacer
+files_to_move = [
+    "tt_um_CPU.v",
+    "ALU.v",
+    "BranchUnit.v",
+    "ControlUnit.v",
+    "DataMemory.v",
+    "FlagRegister.v",
+    "ProgramCounter.v",
+    "ProgramMemory_SPI.v",
+    "register_file.v",
+    "AudioPWM.v",
+    "defines.vh"
+]
+
+print("-" * 30)
+print("Déplacement des fichiers vers src/...")
+for file in files_to_move:
+    if os.path.exists(file):
+        try:
+            shutil.move(file, os.path.join("src", file))
+            print(f" -> {file} déplacé.")
+        except Exception as e:
+            print(f" -> Erreur déplacement {file}: {e}")
+    elif os.path.exists(os.path.join("src", file)):
+        print(f" -> {file} est déjà dans src.")
+    else:
+        print(f" [INFO] Fichier {file} introuvable (peut-être pas encore créé), ignoré.")
+
+# 3. Mise à jour du info.yaml avec les nouveaux chemins
+# On réécrit le fichier proprement
+new_info_content = """--- 
 project:
   title: "Microprocesseur 8-bit SPI"
-  author: "Toi"
+  author: "GlodiSala"
   discord: ""
   description: "Un CPU 8-bit personnalisé avec mémoire externe SPI et Audio"
   language: "Verilog"
   clock_hz: 50000000 # 50MHz
 
-  # Comment ça marche (facultatif pour le test)
   how_it_works: "CPU custom architecture"
   how_to_test: "Testbench via SPI"
   external_hw: ""
 
-  # LES FICHIERS SOURCES (C'est le plus important !)
+  # FICHIERS DANS LE DOSSIER SRC
   source_files:
-    - "tt_um_CPU.v"          # Ton Top Module
-    - "ALU.v"
-    - "BranchUnit.v"
-    - "ControlUnit.v"
-    - "DataMemory.v"
-    - "FlagRegister.v"
-    - "ProgramCounter.v"
-    - "ProgramMemory_SPI.v"  # Version SPI
-    - "register_file.v"
-    - "AudioPWM.v"           # Si tu l'as créé, sinon retire cette ligne
-    - "defines.vh"
+    - "src/tt_um_CPU.v"
+    - "src/ALU.v"
+    - "src/BranchUnit.v"
+    - "src/ControlUnit.v"
+    - "src/DataMemory.v"
+    - "src/FlagRegister.v"
+    - "src/ProgramCounter.v"
+    - "src/ProgramMemory_SPI.v"
+    - "src/register_file.v"
+    - "src/AudioPWM.v"
+    - "src/defines.vh"
 
-  # LE NOM DE TON MODULE PRINCIPAL
-  # Attention : Doit correspondre exactement au nom 'module ...' dans tt_um_CPU.v
   top_module:  "tt_um_cpu"
 
-# Configuration des Pins (Pour la documentation)
+# Pins
   inputs:
     - ui_in[0]
     - ui_in[1]
@@ -70,48 +98,21 @@ project:
 """
 
 with open("info.yaml", "w") as f:
-    f.write(info_content)
-print("[OK] Fichier info.yaml créé.")
+    f.write(new_info_content)
+print("[OK] info.yaml mis à jour avec les chemins 'src/'.")
 
-# 3. Création du Workflow GitHub (La recette de cuisine pour GDS)
-workflow_content = """name: gds
-
-on:
-  push:
-  workflow_dispatch:
-
-jobs:
-  gds:
-    env:
-      OPENLANE_TAG: 2024.01.27
-      PDK_ROOT: /home/runner/pdk
-      PDK: sky130A
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repo
-        uses: actions/checkout@v4
-
-      - name: GitHub Action for Tiny Tapeout
-        uses: TinyTapeout/tt-gds-action@v2
-        with:
-          pdk_root: ${{ env.PDK_ROOT }}
-          pdk_tag: sky130B
-"""
-
-with open(os.path.join(workflows_dir, "gds.yaml"), "w") as f:
-    f.write(workflow_content)
-print("[OK] Fichier .github/workflows/gds.yaml créé.")
-
-# 4. Envoi automatique vers GitHub
+# 4. Git Push
 def run_git(cmd):
     subprocess.run(cmd, shell=True, check=True)
 
 print("-" * 30)
-print("Envoi de la configuration vers GitHub...")
+print("Envoi vers GitHub...")
 try:
     run_git("git add .")
-    run_git('git commit -m "Setup: Ajout info.yaml et GDS workflow"')
+    # On commit les suppressions (fichiers déplacés) et les ajouts
+    run_git('git add -u') 
+    run_git('git commit -m "Refactor: Déplacement des sources dans src/"')
     run_git("git push")
-    print("\n✅ SUCCÈS TOTAL ! Va voir l'onglet 'Actions' sur GitHub maintenant.")
+    print("\n✅ RANGEMENT TERMINÉ ! Retourne voir GitHub Actions.")
 except Exception as e:
     print(f"Erreur git : {e}")
