@@ -19,14 +19,14 @@ module DataMemory (
 
     always @(posedge clk) begin
         if (mem_write) begin
-            ram[addr] <= wdata;
+            ram[addr[3:0]] <= wdata;
         end
     end
 
     // Lecture asynchrone ou synchrone ? 
     always @(*) begin
         if (mem_read) 
-            rdata = ram[addr];
+            rdata = ram[addr[3:0]];
         else 
             rdata = 8'b0;
     end
