@@ -21,6 +21,6 @@ always @(*) begin
         default : branch_taken = 0;
     endcase
 end
-
+wire [1:0] _unused_flags = stored_flags[3:2];
 
 endmodule
