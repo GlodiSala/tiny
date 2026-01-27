@@ -1,0 +1,5 @@
+title: "My Project"
+description: "Documentation powered by Jekyll"
+baseurl: "/microprocessor" # Important if using /docs as the Pages source
+markdown: kramdown
+theme: null

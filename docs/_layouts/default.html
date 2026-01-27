@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ page.title }} | {{ site.title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% include head.html %}
+</head>
+<body>
+  <div class="container">
+  <aside class="sidebar">
+  <h2><a href="{{ site.baseurl }}/">Home</a></h2>
+  <ul>
+    {% assign sorted_pages = site.pages | sort: "title" %}
+    {% for p in sorted_pages %}
+      {% if p.url != "/" and p.name != "index.md" and p.path contains ".md" %}
+        <li>
+          <a href="{{ site.baseurl }}{{ p.url }}"
+             class="{% if p.url == page.url %}active{% endif %}">
+             {{ p.title }}
+          </a>
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</aside>
+
+    <main class="content">
+      {{ content }}
+    </main>
+  </div>
+
+  <script>
+    // Add copy buttons to code blocks
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeBlocks = document.querySelectorAll('pre code');
+      
+      codeBlocks.forEach(function(codeBlock) {
+        const pre = codeBlock.parentElement;
+        const container = document.createElement('div');
+        container.className = 'code-block-container';
+        
+        // Wrap the pre element
+        pre.parentNode.insertBefore(container, pre);
+        container.appendChild(pre);
+        
+        // Create copy button
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.setAttribute('aria-label', 'Copy code to clipboard');
+        
+        // Add click handler
+        copyButton.addEventListener('click', function() {
+          const text = codeBlock.textContent;
+          
+          navigator.clipboard.writeText(text).then(function() {
+            copyButton.textContent = 'Copied!';
+            copyButton.classList.add('copied');
+            
+            setTimeout(function() {
+              copyButton.textContent = 'Copy';
+              copyButton.classList.remove('copied');
+            }, 2000);
+          }).catch(function(err) {
+            console.error('Failed to copy text: ', err);
+            copyButton.textContent = 'Error';
+            setTimeout(function() {
+              copyButton.textContent = 'Copy';
+            }, 2000);
+          });
+        });
+        
+        container.appendChild(copyButton);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Script de synthese
+read_verilog -sv defines.vh
+read_verilog -sv tt_um_CPU.v
+read_verilog -sv ALU.v
+read_verilog -sv BranchUnit.v
+read_verilog -sv ControlUnit.v
+read_verilog -sv DataMemory.v
+read_verilog -sv FlagRegister.v
+read_verilog -sv ProgramCounter.v
+read_verilog -sv ProgramMemory_SPI.v
+read_verilog -sv register_file.v
+hierarchy -check -top tt_um_cpu
+proc; opt; fsm; opt; memory; opt;
+techmap; opt;
+stat

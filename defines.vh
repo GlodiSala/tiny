@@ -1,0 +1,16 @@
+`define OP_ADD   4'b0000
+`define OP_ADDI  4'b0001
+`define OP_SUB   4'b0010
+`define OP_AND   4'b0011
+`define OP_OR    4'b0100
+`define OP_XOR   4'b0101
+`define OP_LI    4'b0110
+`define OP_L     4'b0111
+`define OP_ST    4'b1000
+`define OP_JMP   4'b1001
+`define OP_BRZ   4'b1010
+`define OP_BRNZ  4'b1011
+`define OP_BRNS  4'b1100
+`define OP_SHL   4'b1101
+`define OP_SHR   4'b1110
+`define OP_CMP   4'b1111

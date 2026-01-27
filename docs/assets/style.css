@@ -1,0 +1,248 @@
+/* Reset and Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  line-height: 1.6;
+}
+
+/* Layout */
+.container {
+  display: flex;
+  max-width: 1100px;
+  margin: 0 auto 0 0; /* Changed from 'margin: 0 auto;' to align the container to the left */
+  padding: 2rem;
+}
+
+.sidebar {
+  width: 250px;
+  padding-right: 2rem;
+  border-right: 1px solid #333;
+}
+
+.sidebar h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.sidebar a {
+  color: #61dafb;
+  text-decoration: none;
+  display: block;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  background-color: transparent;
+}
+
+.sidebar a:hover, .sidebar a:focus, .sidebar a:active {
+  background-color: #484848; /* Updated hover background color */
+  text-decoration: none !important;
+}
+
+.sidebar a.active {
+  background-color: #444;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.nav-box {
+  background: #2a2a2a;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  margin-bottom: 1rem;
+}
+
+.nav-box h2 {
+  font-size: 1.1rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.nav-box a {
+  color: #61dafb;
+  text-decoration: none;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+
+/* Content */
+.content {
+  flex: 1;
+  padding-left: 2rem;
+}
+
+.content h1, .content h2, .content h3 {
+  color: #ffffff;
+  border-bottom: 1px solid #444;
+  padding-bottom: 0.25rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.content p {
+  margin: 1rem 0;
+}
+
+/* Links */
+a {
+  color: #9cdcfe;
+  text-decoration: none;
+}
+
+/* Code blocks with copy functionality */
+.code-block-container {
+  position: relative;
+  margin: 1rem 0;
+}
+
+.copy-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #404040;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
+}
+
+.code-block-container:hover .copy-button {
+  opacity: 1;
+}
+
+.copy-button:hover {
+  background: #505050;
+  border-color: #666;
+}
+
+.copy-button:active {
+  background: #606060;
+}
+
+.copy-button.copied {
+  background: #4a9eff;
+  color: white;
+}
+
+/* Code blocks */
+code {
+  background: #2d2d2d;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: Consolas, monospace;
+}
+
+pre {
+  background: #2d2d2d;
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 6px;
+  margin: 0; /* Remove margin since container handles it */
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+/* Tables */
+.content table {
+  border: 1px solid #555 !important;
+  border-collapse: collapse !important;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.content table th, 
+.content table td {
+  border: 1px solid #555 !important;
+  padding: 8px !important;
+  text-align: left;
+}
+
+/* Header styling */
+.content table th {
+  background-color: #333 !important;
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+/* Cell styling */
+.content table td {
+  background-color: #2a2a2a !important;
+}
+
+/* Alternate row colors for better readability */
+.content table tr:nth-child(even) td {
+  background-color: #252525 !important;
+}
+
+/* Ensure Markdown tables also get proper styling */
+table {
+  border: 1px solid #555;
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+table th, 
+table td {
+  border: 1px solid #555;
+  padding: 8px;
+  text-align: left;
+}
+
+table th {
+  background-color: #333;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+table td {
+  background-color: #2a2a2a;
+}
+
+table tr:nth-child(even) td {
+  background-color: #252525;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .sidebar {
+    width: 100%;
+    padding-right: 0;
+    border-right: none;
+    margin-bottom: 2rem;
+  }
+
+  .content {
+    padding-left: 0;
+  }
+  
+  .copy-button {
+    opacity: 1; /* Always show on mobile */
+  }
+}
