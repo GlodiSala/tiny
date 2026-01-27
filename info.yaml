@@ -54,6 +54,6 @@ bidirectional:
   - uio_out[5]
   - uio_out[6]
   - uio_out[7]
-
-# C'est ICI qu'elle doit être (tout en bas, sans espaces devant)
+tiles: "1x1"          
 yaml_version: 6
+
