@@ -109,18 +109,30 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // SORTIES ET SÉCURITÉ FINALE
+    // ANCRAGE DES SIGNAUX "A RISQUE"
     // ========================================================================
-    
-    // On force l'utilisation de ui_in dans uo_out[0]
-    wire logic_anchor = ^ui_in ^ is_branch;
-    assign uo_out[0] = pc_current[0] ^ (logic_anchor & 1'b0);
-    
-    assign uo_out[3:1] = pc_current[3:1];
-    assign uo_out[4]   = 1'b1; 
-    assign uo_out[6:5] = pc_current[6:5];
 
-    // On garde MISO sur uo_out[7] pour garantir son routage
-    assign uo_out[7] = spi_io1_i; 
+    // 1. On règle le warning sur uio_in[7:3, 0] en les XORant
+    wire unused_uio = ^uio_in[7:3] ^ uio_in[0];
+
+    // 2. On règle le problème de 'ena' et 'ui_in'
+    // On va utiliser uo_out[4] et uo_out[7] qui étaient "statiques" 
+    // pour sortir ces signaux. C'est la seule façon d'être SÛR qu'ils restent.
+
+    assign uo_out[0] = pc_current[0];
+    assign uo_out[1] = pc_current[1];
+    assign uo_out[2] = pc_current[2];
+    assign uo_out[3] = pc_current[3];
+
+    // On sort 'ena' sur la pin 4. Si ena meurt, la pin 4 meurt. 
+    // OpenLane est obligé de garder 'ena'.
+    assign uo_out[4] = ena; 
+
+    assign uo_out[5] = pc_current[5];
+    assign uo_out[6] = pc_current[6];
+
+    // On sort le XOR des signaux inutilisés (ui_in et reste de uio) sur la pin 7
+    // On ajoute spi_io1_i dedans pour être certain que le MISO est routé aussi.
+    assign uo_out[7] = (^ui_in) ^ unused_uio ^ spi_io1_i ^ is_branch;
 
 endmodule
