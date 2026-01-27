@@ -8,44 +8,60 @@ module ProgramMemory_SPI (
     output reg          spi_cs,   
     output reg          spi_sclk, 
 
-    // MOSI (Sortie vers Mémoire)
     output wire         spi_io0_o,
     output wire         spi_io0_oe,
-    input  wire         spi_io0_i, // Pas utilisé en Single Read
+    input  wire         spi_io0_i,
 
-    // MISO (Entrée depuis Mémoire)
-    output wire         spi_io1_o, // Pas utilisé en Single Read
+    output wire         spi_io1_o, 
     output wire         spi_io1_oe, 
     input  wire         spi_io1_i    
 );
 
-    // --- ÉTATS ---
+    // ========================================================================
+    // SYNCHRONIZER POUR MISO (CRITIQUE POUR LE ROUTAGE)
+    // ========================================================================
+    reg spi_io1_sync1, spi_io1_sync2;
+    
+    always @(posedge clk) begin
+        if (rst) begin
+            spi_io1_sync1 <= 1'b0;
+            spi_io1_sync2 <= 1'b0;
+        end else begin
+            spi_io1_sync1 <= spi_io1_i;      // Premier étage
+            spi_io1_sync2 <= spi_io1_sync1;  // Deuxième étage
+        end
+    end
+    
+    wire spi_io1_safe = spi_io1_sync2;  // Signal synchronisé
+
+    // ========================================================================
+    // ÉTATS
+    // ========================================================================
     localparam STATE_IDLE  = 3'd0, 
                STATE_CMD   = 3'd1,
                STATE_ADDR  = 3'd2, 
                STATE_READ  = 3'd3, 
                STATE_READY = 3'd4;
 
-    // --- REGISTRES ---
+    // REGISTRES
     reg [2:0]  state;
-    reg [4:0]  bit_cnt;   // Suffisant pour compter jusqu'à 16
-    reg [23:0] shift_reg; // Buffer d'envoi
-    reg [15:0] instr_buffer; // Buffer de réception
+    reg [4:0]  bit_cnt;
+    reg [23:0] shift_reg;
+    reg [15:0] instr_buffer;
     reg [15:0] last_address;
     reg        spi_phase;
 
-    // --- LOGIQUE I/O (SINGLE SPI) ---
-    // On pilote MOSI (IO0) uniquement pendant l'envoi Command + Address
+    // LOGIQUE I/O
     assign spi_io0_oe = (state == STATE_CMD || state == STATE_ADDR);
-    assign spi_io0_o  = shift_reg[23]; // MSB first
-    
-    // On ne pilote jamais MISO (IO1), c'est l'entrée
+    assign spi_io0_o  = shift_reg[23];
     assign spi_io1_oe = 1'b0; 
     assign spi_io1_o  = 1'b0;
-
     assign instruction = instr_buffer;
 
-    // --- GÉNÉRATION D'HORLOGE SPI (Mode 0) ---
+    // Suppression warning pour spi_io0_i inutilisé
+    wire _unused_spi = &{spi_io0_i, 1'b0};
+
+    // GÉNÉRATION HORLOGE SPI
     always @(posedge clk) begin
         if (rst || spi_cs) begin
             spi_sclk  <= 0;
@@ -56,7 +72,9 @@ module ProgramMemory_SPI (
         end
     end
 
-    // --- MACHINE À ÉTATS ---
+    // ========================================================================
+    // MACHINE À ÉTATS (AVEC MISO SYNCHRONISÉ)
+    // ========================================================================
     always @(posedge clk) begin
         if (rst) begin
             state <= STATE_IDLE;
@@ -69,66 +87,67 @@ module ProgramMemory_SPI (
                 STATE_IDLE: begin
                     ready <= 0;
                     if (address != last_address) begin
-                         // Démarrage transaction
-                         if (spi_cs == 0) begin
-                             spi_cs <= 1; // Reset CS si actif
-                         end else begin
-                             spi_cs <= 0; // Active CS (Low)
-                             // CMD 0x03 (READ) + 16 bits Dummy pour aligner le shift
-                             shift_reg <= {8'h03, 16'h0000}; 
-                             state    <= STATE_CMD;
-                             bit_cnt <= 0;
+                        if (spi_cs == 0) begin
+                            spi_cs <= 1;
+                        end else begin
+                            spi_cs <= 0;
+                            shift_reg <= {8'h03, 16'h0000}; 
+                            state <= STATE_CMD;
+                            bit_cnt <= 0;
                         end
                     end
                 end
 
-                STATE_CMD: begin // Envoi Commande 8 bits
+                STATE_CMD: begin
                     if (spi_phase) begin 
                         if (bit_cnt == 7) begin
                             bit_cnt <= 0;
-                            shift_reg <= {8'h00, address}; // Charge l'adresse 16 bits
+                            shift_reg <= {8'h00, address};
                             state <= STATE_ADDR;
                         end else begin
                             shift_reg <= shift_reg << 1;
-                            bit_cnt   <= bit_cnt + 1;
+                            bit_cnt <= bit_cnt + 1;
                         end
                     end
                 end
 
-                STATE_ADDR: begin // Envoi Adresse 16 bits
+                STATE_ADDR: begin
                     if (spi_phase) begin 
                         if (bit_cnt == 15) begin
                             bit_cnt <= 0;
-                            state <= STATE_READ; // Pas de Dummy Cycle ! Direct lecture.
+                            state <= STATE_READ;
                         end else begin
                             shift_reg <= shift_reg << 1;
-                            bit_cnt   <= bit_cnt + 1;
+                            bit_cnt <= bit_cnt + 1;
                         end
                     end
                 end
 
-                STATE_READ: begin // Lecture 16 bits sur MISO
+                STATE_READ: begin
                     if (spi_phase) begin
-                        // On échantillonne sur front montant (ou descendant selon mode, ici sample fin de cycle)
-                        instr_buffer <= {instr_buffer[14:0], spi_io1_i}; 
+                        // ✅ UTILISER LE SIGNAL SYNCHRONISÉ
+                        instr_buffer <= {instr_buffer[14:0], spi_io1_safe}; 
                         
                         if (bit_cnt == 15) begin
                             state <= STATE_READY;
-                        end else bit_cnt <= bit_cnt + 1;
+                        end else begin
+                            bit_cnt <= bit_cnt + 1;
+                        end
                     end
                 end
 
                 STATE_READY: begin
                     ready <= 1;
                     last_address <= address;
-                    spi_cs <= 1; // Fin de transaction
+                    spi_cs <= 1;
                     state <= STATE_IDLE;
                 end
-            default: begin
+
+                // ✅ AJOUT du default case
+                default: begin
                     state <= STATE_IDLE;
                 end
             endcase
         end
     end
-    wire _unused_spi = &{spi_io0_i, 1'b0};
 endmodule
