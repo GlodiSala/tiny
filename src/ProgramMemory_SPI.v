@@ -124,6 +124,7 @@ module ProgramMemory_SPI (
                     spi_cs <= 1; // Fin de transaction
                     state <= STATE_IDLE;
                 end
+            default: next_state = IDLE;
             endcase
         end
     end
