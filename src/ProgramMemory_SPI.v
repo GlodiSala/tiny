@@ -1,105 +1,189 @@
-module ProgramMemory_SPI_RAM (
-    input  wire        clk,
-    input  wire        rst,
-    input  wire [15:0] address,
-    output reg  [15:0] instruction,
-    output reg         ready,
-    
-    // SPI vers RP2040
-    output reg         spi_cs,
-    output reg         spi_sck,
-    output reg         spi_mosi,
-    input  wire        spi_miso
+`include "defines.vh"
+
+module tt_um_cpu (
+    input  wire [7:0] ui_in,
+    output wire [7:0] uo_out,
+    input  wire [7:0] uio_in,
+    output wire [7:0] uio_out,
+    output wire [7:0] uio_oe,
+    input  wire       ena,
+    input  wire       clk,
+    input  wire       rst_n
 );
 
-    // États simplifiés
-    localparam IDLE  = 2'd0,
-               CMD   = 2'd1,
-               ADDR  = 2'd2,
-               DATA  = 2'd3;
+    wire rst = !rst_n;
 
-    reg [1:0] state;
-    reg [4:0] bit_cnt;
-    reg [7:0] cmd_byte;
-    reg [15:0] addr_buf;
-    reg [15:0] data_buf;
-    reg [15:0] last_addr;
-
+    // ========================================================================
+    // SYNCHRONISATION MISO (1 REGISTRE)
+    // ========================================================================
+    reg miso_sync;
     always @(posedge clk) begin
         if (rst) begin
-            state <= IDLE;
-            ready <= 0;
-            spi_cs <= 1;
-            spi_sck <= 0;
-            spi_mosi <= 0;
-            last_addr <= 16'hFFFF;
-            instruction <= 16'h0000;
+            miso_sync <= 1'b0;
         end else begin
-            case (state)
-                IDLE: begin
-                    ready <= 0;
-                    spi_sck <= 0;
-                    if (address != last_addr) begin
-                        spi_cs <= 0;           // Activer CS
-                        cmd_byte <= 8'h03;     // READ command
-                        addr_buf <= address;
-                        bit_cnt <= 0;
-                        state <= CMD;
-                    end else begin
-                        spi_cs <= 1;
-                        ready <= 1;            // Donnée déjà en cache
-                    end
-                end
-
-                CMD: begin
-                    spi_mosi <= cmd_byte[7];
-                    spi_sck <= ~spi_sck;       // Toggle clock
-                    
-                    if (spi_sck) begin         // Sur front descendant
-                        cmd_byte <= {cmd_byte[6:0], 1'b0};
-                        bit_cnt <= bit_cnt + 1;
-                        
-                        if (bit_cnt == 7) begin
-                            bit_cnt <= 0;
-                            state <= ADDR;
-                        end
-                    end
-                end
-
-                ADDR: begin
-                    spi_mosi <= addr_buf[15];
-                    spi_sck <= ~spi_sck;
-                    
-                    if (spi_sck) begin
-                        addr_buf <= {addr_buf[14:0], 1'b0};
-                        bit_cnt <= bit_cnt + 1;
-                        
-                        if (bit_cnt == 15) begin
-                            bit_cnt <= 0;
-                            state <= DATA;
-                        end
-                    end
-                end
-
-                DATA: begin
-                    spi_mosi <= 0;             // Lecture uniquement
-                    spi_sck <= ~spi_sck;
-                    
-                    if (spi_sck) begin         // Capturer sur front montant
-                        data_buf <= {data_buf[14:0], spi_miso};
-                        bit_cnt <= bit_cnt + 1;
-                        
-                        if (bit_cnt == 15) begin
-                            instruction <= {data_buf[14:0], spi_miso};
-                            last_addr <= address;
-                            ready <= 1;
-                            spi_cs <= 1;       // Désactiver CS
-                            state <= IDLE;
-                        end
-                    end
-                end
-            endcase
+            miso_sync <= uio_in[2];
         end
     end
+
+    // ========================================================================
+    // SIGNAUX INTERNES
+    // ========================================================================
+    wire [15:0] pc_current;
+    wire [15:0] instruction;
+    wire        mem_ready;
+
+    wire reg_write, mem_read, mem_write, flag_write, alu_src;
+    wire [1:0] reg_write_src;
+    wire [3:0] alu_op;
+    wire [3:0] branch_type;
+    wire [15:0] branch_offset;
+    wire [7:0] alu_immediate;
+    wire [2:0] addr1_select, addr2_select;
+
+    wire [7:0] reg_data1, reg_data2;
+    wire [7:0] alu_result;
+    wire [7:0] mem_rdata;
+    wire [7:0] reg_write_data;
+
+    wire zero, overflow, carry, negative;
+    wire [3:0] stored_flags;
+    
+    wire branch_taken;
+    wire [15:0] branch_target;
+
+    // Signaux SPI
+    wire spi_cs, spi_sck, spi_mosi;
+
+    // ========================================================================
+    // PROGRAM MEMORY (TON MODULE SPI)
+    // ========================================================================
+    ProgramMemory_SPI_RAM program_mem (
+        .clk(clk),
+        .rst(rst | !ena),
+        .address(pc_current),
+        .instruction(instruction),
+        .ready(mem_ready),
+        .spi_cs(spi_cs),
+        .spi_sck(spi_sck),
+        .spi_mosi(spi_mosi),
+        .spi_miso(miso_sync)
+    );
+
+    // ========================================================================
+    // MAPPING SPI (STANDARD)
+    // ========================================================================
+    assign uio_out[0] = spi_cs;
+    assign uio_oe[0]  = 1'b1;
+    
+    assign uio_out[1] = spi_mosi;
+    assign uio_oe[1]  = 1'b1;
+    
+    assign uio_out[2] = 1'b0;      // MISO en entrée
+    assign uio_oe[2]  = 1'b0;
+    
+    assign uio_out[3] = spi_sck;
+    assign uio_oe[3]  = 1'b1;
+
+    assign uio_out[7:4] = 4'b0000;
+    assign uio_oe[7:4]  = 4'b0000;
+
+    // ========================================================================
+    // MODULES INTERNES
+    // ========================================================================
+    ProgramCounter pc (
+        .clk(clk),
+        .rst(rst | !ena),
+        .mem_ready(mem_ready),
+        .branch_en(branch_taken),
+        .branch_addr(branch_target),
+        .pc_current(pc_current)
+    );
+
+    ControlUnit cu (
+        .instruction(instruction),
+        .reg_write(reg_write),
+        .reg_write_src(reg_write_src),
+        .mem_read(mem_read),
+        .mem_write(mem_write),
+        .addr1_select(addr1_select),
+        .addr2_select(addr2_select),
+        .alu_operation(alu_op),
+        .alu_src(alu_src),
+        .alu_immediate(alu_immediate),
+        .flag_write(flag_write),
+        .branch_type(branch_type),
+        .branch_offset(branch_offset)
+    );
+
+    assign reg_write_data = (reg_write_src == 2'b01) ? mem_rdata : alu_result;
+    
+    RegisterFile regfile (
+        .clk(clk),
+        .rst(rst | !ena),
+        .write_en(reg_write),
+        .enable(mem_ready),
+        .addr_wr(instruction[11:9]),
+        .data_wr(reg_write_data),
+        .addr1_r(addr1_select),
+        .addr2_r(addr2_select),
+        .out1_r(reg_data1),
+        .out2_r(reg_data2)
+    );
+
+    wire [7:0] alu_operand_b = (alu_src) ? alu_immediate : reg_data2;
+    
+    ALU alu (
+        .operation(alu_op),
+        .operand1(reg_data1),
+        .operand2(alu_operand_b),
+        .result(alu_result),
+        .zero_flag(zero),
+        .overflow_flag(overflow),
+        .carry_flag(carry),
+        .negative_flag(negative)
+    );
+
+    FlagRegister flag_reg (
+        .clk(clk),
+        .rst(rst | !ena),
+        .write(flag_write && mem_ready),
+        .flags_alu({overflow, carry, negative, zero}),
+        .stored_flags(stored_flags)
+    );
+
+    BranchUnit branch_unit (
+        .branch_type(branch_type),
+        .branch_offset(branch_offset),
+        .stored_flags(stored_flags),
+        .pc_current(pc_current),
+        .branch_taken(branch_taken),
+        .branch_target(branch_target)
+    );
+
+    DataMemory data_mem (
+        .clk(clk),
+        .mem_read(mem_read),
+        .mem_write(mem_write && mem_ready && ena),
+        .addr(alu_result),
+        .wdata(reg_data2),
+        .rdata(mem_rdata)
+    );
+
+    
+    // ========================================================================
+    // ANCRAGE PHYSIQUE ET NETTOYAGE (Version Finale Corrigée)
+    // ========================================================================
+    
+    // 1. On regroupe tout ce qui est "inutilisé" pour le linter
+    wire _unused_xor = (^ui_in[7:1]) ^ (^uio_in[7:3]) ^ uio_in[1] ^ uio_in[0];
+    
+    // 2. On regroupe les signaux critiques pour le routage (ena, miso, ui0)
+    wire logic_shield = ui_in[0] ^ ena ^ miso_sync ^ branch_taken;
+    
+    // 3. UNE SEULE assignation pour tout le bus uo_out
+    // Bit 0 : PC + Bouclier + Bits inutilisés
+    // Bits 7 à 1 : Reste du PC
+    assign uo_out[0]   = pc_current[0] ^ logic_shield ^ _unused_xor;
+    assign uo_out[7:1] = pc_current[7:1];
 
 endmodule
