@@ -6,10 +6,6 @@ on:
 
 jobs:
   gds:
-    env:
-      OPENLANE_TAG: 2024.01.27
-      PDK_ROOT: /home/runner/pdk
-      PDK: sky130A
     runs-on: ubuntu-latest
     steps:
       - name: checkout repo
@@ -17,6 +13,3 @@ jobs:
 
       - name: GitHub Action for Tiny Tapeout
         uses: TinyTapeout/tt-gds-action@tt08
-        with:
-          pdk_root: ${{ env.PDK_ROOT }}
-          pdk_tag: sky130B
