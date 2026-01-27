@@ -1,0 +1,22 @@
+name: gds
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  gds:
+    env:
+      OPENLANE_TAG: 2024.01.27
+      PDK_ROOT: /home/runner/pdk
+      PDK: sky130A
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+
+      - name: GitHub Action for Tiny Tapeout
+        uses: TinyTapeout/tt-gds-action@v2
+        with:
+          pdk_root: ${{ env.PDK_ROOT }}
+          pdk_tag: sky130B

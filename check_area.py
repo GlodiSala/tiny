@@ -1,96 +1,117 @@
-import subprocess
 import os
-import sys
+import subprocess
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
-# L'URL exacte de ton dépôt GitHub
-REPO_URL = "https://github.com/GlodiSala/tiny.git"
+# 1. Création de l'arborescence pour GitHub Actions
+workflows_dir = os.path.join(".github", "workflows")
+os.makedirs(workflows_dir, exist_ok=True)
 
-# Message du commit
-COMMIT_MESSAGE = "Initial Upload: CPU Single SPI + Audio"
+# 2. Création du fichier info.yaml (La carte d'identité de la puce)
+# J'ai mis tes fichiers basés sur ton log git précédent
+info_content = """--- 
+project:
+  title: "Microprocesseur 8-bit SPI"
+  author: "Toi"
+  discord: ""
+  description: "Un CPU 8-bit personnalisé avec mémoire externe SPI et Audio"
+  language: "Verilog"
+  clock_hz: 50000000 # 50MHz
 
-# Nom de la branche (TinyTapeout utilise 'main')
-BRANCH = "main"
-# ==========================================
+  # Comment ça marche (facultatif pour le test)
+  how_it_works: "CPU custom architecture"
+  how_to_test: "Testbench via SPI"
+  external_hw: ""
 
-def run_git_command(command, ignore_error=False):
-    """Exécute une commande git et affiche le résultat."""
-    print(f"Executing: {command}")
-    try:
-        result = subprocess.run(
-            command,
-            check=True,
-            shell=True,
-            text=True,
-            capture_output=True
-        )
-        print(f"[SUCCÈS] {result.stdout.strip()}")
-        return True
-    except subprocess.CalledProcessError as e:
-        if not ignore_error:
-            print(f"[ERREUR] La commande a échoué : {e.stderr}")
-        else:
-            print(f"[INFO] Pas grave, on continue : {e.stderr.strip()}")
-        return False
+  # LES FICHIERS SOURCES (C'est le plus important !)
+  source_files:
+    - "tt_um_CPU.v"          # Ton Top Module
+    - "ALU.v"
+    - "BranchUnit.v"
+    - "ControlUnit.v"
+    - "DataMemory.v"
+    - "FlagRegister.v"
+    - "ProgramCounter.v"
+    - "ProgramMemory_SPI.v"  # Version SPI
+    - "register_file.v"
+    - "AudioPWM.v"           # Si tu l'as créé, sinon retire cette ligne
+    - "defines.vh"
 
-def full_setup_and_upload():
-    print("="*50)
-    print("   AUTOMATISATION GITHUB - SETUP & UPLOAD")
-    print("="*50)
+  # LE NOM DE TON MODULE PRINCIPAL
+  # Attention : Doit correspondre exactement au nom 'module ...' dans tt_um_CPU.v
+  top_module:  "tt_um_cpu"
 
-    # 1. Initialiser git si le dossier .git n'existe pas
-    if not os.path.exists(".git"):
-        print("--> Initialisation du dépôt...")
-        run_git_command("git init")
-    else:
-        print("--> Dépôt git déjà détecté.")
+# Configuration des Pins (Pour la documentation)
+  inputs:
+    - ui_in[0]
+    - ui_in[1]
+    - ui_in[2]
+    - ui_in[3]
+    - ui_in[4]
+    - ui_in[5]
+    - ui_in[6]
+    - ui_in[7]
+  outputs:
+    - uo_out[0]
+    - uo_out[1]
+    - uo_out[2]
+    - uo_out[3]
+    - uo_out[4]
+    - uo_out[5]
+    - uo_out[6]
+    - uo_out[7]
+  bidirectional:
+    - uio_out[0]
+    - uio_out[1]
+    - uio_out[2]
+    - uio_out[3]
+    - uio_out[4]
+    - uio_out[5]
+    - uio_out[6]
+    - uio_out[7]
+"""
 
-    # 2. Renommer la branche actuelle en 'main'
-    run_git_command(f"git branch -M {BRANCH}")
+with open("info.yaml", "w") as f:
+    f.write(info_content)
+print("[OK] Fichier info.yaml créé.")
 
-    # 3. Configurer l'URL distante (Remote)
-    # On supprime l'ancienne origine pour être sûr de mettre la bonne
-    run_git_command("git remote remove origin", ignore_error=True)
-    
-    print(f"--> Configuration de l'URL : {REPO_URL}")
-    if not run_git_command(f"git remote add origin {REPO_URL}"):
-        print("Impossible d'ajouter l'origine. Vérifie l'URL.")
-        return
+# 3. Création du Workflow GitHub (La recette de cuisine pour GDS)
+workflow_content = """name: gds
 
-    # 4. TENTATIVE DE PULL (Synchronisation)
-    # C'est ici que tu avais l'erreur. On va essayer, mais si le remote est vide,
-    # on ignore l'erreur et on passera directement au push.
-    print("--> Tentative de récupération des fichiers distants (Template)...")
-    success_pull = run_git_command(f"git pull origin {BRANCH} --allow-unrelated-histories", ignore_error=True)
-    
-    if not success_pull:
-        print("--> Le dépôt distant semble vide ou inaccessible. Ce n'est pas grave, on va le remplir.")
+on:
+  push:
+  workflow_dispatch:
 
-    # 5. Ajouter les fichiers locaux
-    print("--> Ajout des fichiers locaux...")
-    run_git_command("git add .")
+jobs:
+  gds:
+    env:
+      OPENLANE_TAG: 2024.01.27
+      PDK_ROOT: /home/runner/pdk
+      PDK: sky130A
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
 
-    # 6. Créer le commit
-    print(f"--> Création du commit : {COMMIT_MESSAGE}")
-    # On ignore l'erreur ici car si rien n'a changé, git commit renvoie une erreur, mais ce n'est pas grave
-    run_git_command(f'git commit -m "{COMMIT_MESSAGE}"', ignore_error=True)
+      - name: GitHub Action for Tiny Tapeout
+        uses: TinyTapeout/tt-gds-action@v2
+        with:
+          pdk_root: ${{ env.PDK_ROOT }}
+          pdk_tag: sky130B
+"""
 
-    # 7. ENVOI FINAL (PUSH)
-    print("--> ENVOI VERS GITHUB (PUSH)...")
-    print("Une fenêtre de connexion GitHub peut s'ouvrir...")
-    
-    if run_git_command(f"git push -u origin {BRANCH}"):
-        print("\n" + "="*50)
-        print("✅ VICTOIRE ! Tes fichiers sont sur GitHub.")
-        print("="*50)
-    else:
-        print("\n❌ ECHEC de l'envoi.")
-        print("Vérifie :")
-        print("1. Ta connexion internet.")
-        print("2. Que l'URL du dépôt est correcte.")
-        print("3. Que tu es bien connecté à GitHub.")
+with open(os.path.join(workflows_dir, "gds.yaml"), "w") as f:
+    f.write(workflow_content)
+print("[OK] Fichier .github/workflows/gds.yaml créé.")
 
-if __name__ == "__main__":
-    full_setup_and_upload()
+# 4. Envoi automatique vers GitHub
+def run_git(cmd):
+    subprocess.run(cmd, shell=True, check=True)
+
+print("-" * 30)
+print("Envoi de la configuration vers GitHub...")
+try:
+    run_git("git add .")
+    run_git('git commit -m "Setup: Ajout info.yaml et GDS workflow"')
+    run_git("git push")
+    print("\n✅ SUCCÈS TOTAL ! Va voir l'onglet 'Actions' sur GitHub maintenant.")
+except Exception as e:
+    print(f"Erreur git : {e}")
