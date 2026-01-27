@@ -14,14 +14,19 @@ module tt_um_cpu (
     wire rst = !rst_n;
 
     // ========================================================================
-    // BUFFER POUR MISO (CRITIQUE POUR ROUTAGE)
+    // TRIPLE BUFFER POUR MISO (3 REGISTRES POUR ROUTAGE ASIC)
     // ========================================================================
-    reg uio_in_2_buf;
+    reg uio_in_2_buf1, uio_in_2_buf2, uio_in_2_buf3;
+    
     always @(posedge clk) begin
         if (rst) begin
-            uio_in_2_buf <= 1'b0;
+            uio_in_2_buf1 <= 1'b0;
+            uio_in_2_buf2 <= 1'b0;
+            uio_in_2_buf3 <= 1'b0;
         end else begin
-            uio_in_2_buf <= uio_in[2];
+            uio_in_2_buf1 <= uio_in[2];       // 1er étage
+            uio_in_2_buf2 <= uio_in_2_buf1;   // 2ème étage
+            uio_in_2_buf3 <= uio_in_2_buf2;   // 3ème étage (final)
         end
     end
 
@@ -51,13 +56,13 @@ module tt_um_cpu (
     wire branch_taken;
     wire [15:0] branch_target;
 
-    // Signaux SPI - ✅ Seulement ceux qui existent !
+    // Signaux SPI
     wire spi_cs, spi_sclk;
     wire spi_io0_o, spi_io0_oe, spi_io0_i;
     wire spi_io1_i;
 
     // ========================================================================
-    // PROGRAM MEMORY (SPI SIMPLIFIÉ)
+    // PROGRAM MEMORY (SPI - SANS SYNCHRONIZER INTERNE)
     // ========================================================================
     ProgramMemory_SPI program_mem (
         .clk(clk),
@@ -70,7 +75,7 @@ module tt_um_cpu (
         .spi_io0_o(spi_io0_o),
         .spi_io0_oe(spi_io0_oe),
         .spi_io0_i(spi_io0_i),
-        .spi_io1_i(spi_io1_i)  // ✅ Seulement l'entrée MISO
+        .spi_io1_i(spi_io1_i)
     );
 
     // ========================================================================
@@ -85,7 +90,7 @@ module tt_um_cpu (
 
     assign uio_out[2] = 1'b0;
     assign uio_oe[2]  = 1'b0;
-    assign spi_io1_i  = uio_in_2_buf;
+    assign spi_io1_i  = uio_in_2_buf3;  // ✅ Signal 3x bufférisé
 
     assign uio_out[3] = spi_sclk;
     assign uio_oe[3]  = 1'b1;
@@ -122,7 +127,6 @@ module tt_um_cpu (
         .alu_src(alu_src),
         .alu_immediate(alu_immediate),
         .flag_write(flag_write),
-        // ✅ is_branch supprimé complètement
         .branch_type(branch_type),
         .branch_offset(branch_offset)
     );
