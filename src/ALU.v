@@ -26,7 +26,7 @@ module ALU(
             `OP_ADD, `OP_SUB: begin
                 b_inv = (operation == `OP_SUB) ? ~operand2 : operand2;
                 cin   = (operation == `OP_SUB);
-                {carry_flag, result} = {1'b0, operand1} + {1'b0, b_inv} + cin;
+                {carry_flag, result} = {1'b0, operand1} + {1'b0, b_inv} + {8'b0, cin};
                 overflow_flag = (operand1[7] == b_inv[7]) && (result[7] != operand1[7]);
             end
             `OP_SHL: begin
