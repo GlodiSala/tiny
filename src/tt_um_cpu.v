@@ -1,3 +1,4 @@
+`default_nettype none
 `include "defines.vh"
 
 module tt_um_cpu (
@@ -14,7 +15,7 @@ module tt_um_cpu (
     wire rst = !rst_n;
 
     // ========================================================================
-    // SYNCHRONISATION MISO (1 REGISTRE)
+    // SYNCHRONISATION MISO
     // ========================================================================
     reg miso_sync;
     always @(posedge clk) begin
@@ -55,7 +56,7 @@ module tt_um_cpu (
     wire spi_cs, spi_sck, spi_mosi;
 
     // ========================================================================
-    // PROGRAM MEMORY (TON MODULE SPI)
+    // PROGRAM MEMORY (SPI RAM)
     // ========================================================================
     ProgramMemory_SPI_RAM program_mem (
         .clk(clk),
@@ -70,7 +71,7 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // MAPPING SPI (STANDARD)
+    // MAPPING SPI
     // ========================================================================
     assign uio_out[0] = spi_cs;
     assign uio_oe[0]  = 1'b1;
@@ -78,7 +79,7 @@ module tt_um_cpu (
     assign uio_out[1] = spi_mosi;
     assign uio_oe[1]  = 1'b1;
     
-    assign uio_out[2] = 1'b0;      // MISO en entrée
+    assign uio_out[2] = 1'b0;
     assign uio_oe[2]  = 1'b0;
     
     assign uio_out[3] = spi_sck;
@@ -86,6 +87,11 @@ module tt_um_cpu (
 
     assign uio_out[7:4] = 4'b0000;
     assign uio_oe[7:4]  = 4'b0000;
+
+    // ========================================================================
+    // SORTIE : PC
+    // ========================================================================
+    assign uo_out = pc_current[7:0];
 
     // ========================================================================
     // MODULES INTERNES
@@ -170,20 +176,8 @@ module tt_um_cpu (
     );
 
     // ========================================================================
-    // ANCRAGE PHYSIQUE ET NETTOYAGE (Version Finale Corrigée)
+    // LISTE DES ENTRÉES NON UTILISÉES (COMME LE TEMPLATE)
     // ========================================================================
-    
-    // 1. On regroupe tout ce qui est "inutilisé" pour le linter
-    wire _unused_xor = (^ui_in[7:1]) ^ (^uio_in[7:3]) ^ uio_in[1] ^ uio_in[0];
-    
-    // 2. On regroupe les signaux critiques pour le routage (ena, miso, ui0)
-    wire logic_shield = ui_in[0] ^ ena ^ miso_sync ^ branch_taken;
-    
-    // 3. UNE SEULE assignation pour tout le bus uo_out
-    // Bit 0 : PC + Bouclier + Bits inutilisés
-    // Bits 7 à 1 : Reste du PC
-    assign uo_out[0]   = pc_current[0] ^ logic_shield ^ _unused_xor;
-    assign uo_out[7:1] = pc_current[7:1];
+    wire _unused = &{ui_in, uio_in[7:3], uio_in[1:0], 1'b0};
 
 endmodule
-
