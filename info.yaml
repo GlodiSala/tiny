@@ -3,7 +3,7 @@ project:
   title: "Microprocesseur 8-bit SPI"
   author: "GlodiSala"
   discord: ""
-  description: "Un CPU 8-bit personnalisé avec mémoire externe SPI et Audio"
+  description: "Un CPU 8-bit avec memoire externe SPI"
   language: "Verilog"
   clock_hz: 50000000 # 50MHz
 
@@ -11,7 +11,7 @@ project:
   how_to_test: "Testbench via SPI"
   external_hw: ""
 
-  # FICHIERS DANS LE DOSSIER SRC
+  # LA LISTE EXACTE DE TES FICHIERS (Sans Audio)
   source_files:
     - "src/tt_um_CPU.v"
     - "src/ALU.v"
@@ -20,14 +20,13 @@ project:
     - "src/DataMemory.v"
     - "src/FlagRegister.v"
     - "src/ProgramCounter.v"
-    - "src/ProgramMemory_SPI.v"
+    - "src/ProgramMemory_SPI.v" 
     - "src/register_file.v"
-    - "src/AudioPWM.v"
     - "src/defines.vh"
 
   top_module:  "tt_um_cpu"
 
-# Pins
+# Configuration des Pins standard
   inputs:
     - ui_in[0]
     - ui_in[1]
