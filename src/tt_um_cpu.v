@@ -204,6 +204,6 @@ module tt_um_cpu (
         .rdata(mem_rdata)
     );
     // Signaux inutilisés pour éviter les warnings de lint
-    wire [14:0] _unused_ok = {ui_in, ena, uio_in[5:3], uio_in[0], is_branch, i2c_scl_in, i2c_sda_in};
+    wire [16:0] _unused_ok = {uio_in[2], ui_in, ena, uio_in[5:3], uio_in[0], is_branch, i2c_scl_in, i2c_sda_in};;
 
 endmodule
