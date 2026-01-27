@@ -1,0 +1,8 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1769539566" />
+    <testcase name="test_cpu_basic" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="66" time="0.536536455154419" sim_time_ns="20070.0" ratio_time="37406.59149474515">
+      <failure error_type="AssertionError" error_msg="R1 devrait être 10, obtenu 0&#10;assert 0 == 10" />
+    </testcase>
+  </testsuite>
+</testsuites>
