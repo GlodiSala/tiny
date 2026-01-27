@@ -130,4 +130,5 @@ module ProgramMemory_SPI (
             endcase
         end
     end
+    wire _unused_spi = &{spi_io0_i, 1'b0};
 endmodule
