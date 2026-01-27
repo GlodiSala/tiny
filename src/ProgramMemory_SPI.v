@@ -8,17 +8,17 @@ module ProgramMemory_SPI (
     output reg          spi_cs,   
     output reg          spi_sclk, 
 
+    // MOSI (Sortie/Entrée bidirectionnelle)
     output wire         spi_io0_o,
     output wire         spi_io0_oe,
     input  wire         spi_io0_i,
 
-    output wire         spi_io1_o, 
-    output wire         spi_io1_oe, 
+    // MISO (Entrée uniquement) ✅ Pas de sortie !
     input  wire         spi_io1_i    
 );
 
     // ========================================================================
-    // SYNCHRONIZER POUR MISO (CRITIQUE POUR LE ROUTAGE)
+    // SYNCHRONIZER POUR MISO
     // ========================================================================
     reg spi_io1_sync1, spi_io1_sync2;
     
@@ -27,12 +27,12 @@ module ProgramMemory_SPI (
             spi_io1_sync1 <= 1'b0;
             spi_io1_sync2 <= 1'b0;
         end else begin
-            spi_io1_sync1 <= spi_io1_i;      // Premier étage
-            spi_io1_sync2 <= spi_io1_sync1;  // Deuxième étage
+            spi_io1_sync1 <= spi_io1_i;
+            spi_io1_sync2 <= spi_io1_sync1;
         end
     end
     
-    wire spi_io1_safe = spi_io1_sync2;  // Signal synchronisé
+    wire spi_io1_safe = spi_io1_sync2;
 
     // ========================================================================
     // ÉTATS
@@ -54,11 +54,9 @@ module ProgramMemory_SPI (
     // LOGIQUE I/O
     assign spi_io0_oe = (state == STATE_CMD || state == STATE_ADDR);
     assign spi_io0_o  = shift_reg[23];
-    assign spi_io1_oe = 1'b0; 
-    assign spi_io1_o  = 1'b0;
     assign instruction = instr_buffer;
 
-    // Suppression warning pour spi_io0_i inutilisé
+    // Suppression warning
     wire _unused_spi = &{spi_io0_i, 1'b0};
 
     // GÉNÉRATION HORLOGE SPI
@@ -73,7 +71,7 @@ module ProgramMemory_SPI (
     end
 
     // ========================================================================
-    // MACHINE À ÉTATS (AVEC MISO SYNCHRONISÉ)
+    // MACHINE À ÉTATS
     // ========================================================================
     always @(posedge clk) begin
         if (rst) begin
@@ -125,7 +123,6 @@ module ProgramMemory_SPI (
 
                 STATE_READ: begin
                     if (spi_phase) begin
-                        // ✅ UTILISER LE SIGNAL SYNCHRONISÉ
                         instr_buffer <= {instr_buffer[14:0], spi_io1_safe}; 
                         
                         if (bit_cnt == 15) begin
@@ -143,7 +140,6 @@ module ProgramMemory_SPI (
                     state <= STATE_IDLE;
                 end
 
-                // ✅ AJOUT du default case
                 default: begin
                     state <= STATE_IDLE;
                 end
