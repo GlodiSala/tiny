@@ -2,25 +2,27 @@
 
 module tt_um_CPU_tb;
 
-    // Signaux
+    // ============================================================
+    // SIGNAUX DE TEST
+    // ============================================================
     reg [7:0] ui_in;
     wire [7:0] uo_out;
-    wire [7:0] uio_in;   // Wire car assigné plus bas
+    wire [7:0] uio_in;   
     wire [7:0] uio_out;
     wire [7:0] uio_oe;
     reg ena;
     reg clk;
     reg rst_n;
 
-    // Signaux SPI pour debug
-    wire spi_cs, spi_sclk;
-    
-    // Simulation Flash
+    // Signaux SPI pour debug et simulation Flash
+    wire spi_cs, spi_sclk, spi_mosi;
     reg flash_active;
     reg [15:0] current_instruction;
-    reg f_io1; // MISO (Seule donnée renvoyée par la Flash)
+    reg f_miso; // Signal MISO envoyé par la Flash vers le CPU
 
-    // CPU (Device Under Test)
+    // ============================================================
+    // INSTANCIATION DU CPU (DUT)
+    // ============================================================
     tt_um_cpu uut (
         .ui_in(ui_in),
         .uo_out(uo_out),
@@ -33,27 +35,32 @@ module tt_um_CPU_tb;
     );
 
     // ============================================================
-    // MAPPING SINGLE SPI (Standard)
+    // MAPPING DES PINS (Aligné sur tt_um_cpu)
     // ============================================================
+    // Sorties du CPU vers la Flash
     assign spi_cs   = uio_out[0];  // CS sur Pin 0
+    assign spi_mosi = uio_out[1];  // MOSI sur Pin 1
     assign spi_sclk = uio_out[3];  // CLOCK sur Pin 3
 
-    // Simulation des données rentrantes (MISO)
-    // uio[2] = MISO (Master In Slave Out) -> C'est là que la Flash répond
-    assign uio_in[2] = flash_active ? f_io1 : 1'bz;
+    // Entrées du CPU (uio_in)
+    // Pin 2 est le MISO (Master In Slave Out)
+    assign uio_in[2]   = flash_active ? f_miso : 1'bz;
     
-    // uio[1] = MOSI (Master Out Slave In) -> C'est le CPU qui parle, donc 0 en entrée
-    assign uio_in[1] = 1'b0;
-    
-    // Le reste à 0
-    assign uio_in[0] = 1'b0;
+    // Le reste des entrées est forcé à 0 pour éviter les signaux indéfinis
+    assign uio_in[0]   = 1'b0;
+    assign uio_in[1]   = 1'b0;
     assign uio_in[7:3] = 5'b00000;
+
     // ============================================================
+    // GÉNÉRATION DE L'HORLOGE (50 MHz)
+    // ============================================================
+    always #10 clk = (clk === 1'b0);
 
-    // Horloge 50 MHz
-    always #10 clk = ~clk;
-
-    // Programme en Flash (Instruction à renvoyer selon l'adresse)
+    // ============================================================
+    // SIMULATION DE LA MÉMOIRE FLASH (SINGLE SPI)
+    // ============================================================
+    
+    // Programme en Flash : renvoie l'instruction à l'adresse PC
     function [15:0] get_instruction;
         input [15:0] addr;
         begin
@@ -73,27 +80,25 @@ module tt_um_CPU_tb;
         end
     endfunction
 
-    // Simulateur Flash SINGLE SPI
-    // On envoie 1 bit sur MISO (uio[2]) à chaque coup d'horloge
+    // Logique de réponse bit-à-bit sur le front descendant de SCK (Standard SPI)
     always @(negedge spi_sclk or posedge spi_cs) begin
         if (spi_cs == 1) begin
-            flash_active = 0;
-            f_io1 = 1'b0;
-        end else if (uut.program_mem.state == 3'd3) begin 
-            // ATTENTION: Dans ton nouveau module Single SPI, STATE_READ vaut 3 !
-            flash_active = 1;
+            flash_active <= 0;
+            f_miso       <= 1'b0;
+        end else if (uut.program_mem.state == 3'd3) begin // STATE_READ = 3
+            flash_active <= 1;
             current_instruction = get_instruction(uut.pc_current);
-            
-            // Envoi du bit courant (MSB vers LSB)
-            // bit_cnt va de 0 à 15 dans ton module
-            f_io1 = current_instruction[15 - uut.program_mem.bit_cnt];
+            // Envoi du bit courant (MSB vers LSB) basé sur le compteur interne du module SPI
+            f_miso <= current_instruction[15 - uut.program_mem.bit_cnt];
         end else begin
-            flash_active = 0;
-            f_io1 = 1'b0;
+            flash_active <= 0;
+            f_miso       <= 1'b0;
         end
     end
 
-    // Compteurs de tests
+    // ============================================================
+    // TÂCHES DE VÉRIFICATION
+    // ============================================================
     reg [7:0] test_count;
     reg [7:0] pass_count;
 
@@ -129,20 +134,23 @@ module tt_um_CPU_tb;
         end
     endtask
 
+    // ============================================================
+    // SCÉNARIO DE TEST
+    // ============================================================
     integer i;
     integer instr_count;
     
-    // Scénario de test
     initial begin
         $dumpfile("cpu_simulation.vcd");
         $dumpvars(0, tt_um_CPU_tb);
         
+        // Initialisation
         clk = 0;
         rst_n = 0;
         ena = 1;
         ui_in = 8'h00;
         flash_active = 0;
-        f_io1 = 0;
+        f_miso = 0;
         test_count = 0;
         pass_count = 0;
 
@@ -158,7 +166,8 @@ module tt_um_CPU_tb;
 
         instr_count = 0;
 
-        for (i = 0; i < 4000; i = i + 1) begin // Augmenté à 4000 car Single SPI est plus lent
+        // Boucle de simulation des cycles d'instructions
+        for (i = 0; i < 5000; i = i + 1) begin 
             @(posedge clk);
             if (uut.mem_ready) begin
                 $display("[%0t] PC=%04h I=%04h | R1=%02h R2=%02h R3=%02h | Flags=%b",
@@ -170,11 +179,14 @@ module tt_um_CPU_tb;
                 
                 instr_count = instr_count + 1;
                 if (instr_count >= 12) begin
-                    i = 4000; // Sortie de boucle
+                    i = 5000; // Sortie de boucle une fois le programme fini
                 end
             end
         end
 
+        // ============================================================
+        // VÉRIFICATIONS FINALES
+        // ============================================================
         $display("");
         $display("========================================");
         $display("  VERIFICATIONS FINALES");
@@ -208,8 +220,9 @@ module tt_um_CPU_tb;
         $finish;
     end
 
+    // Timeout de sécurité
     initial begin
-        #80000; // Timeout augmenté car simulation plus lente
+        #200000; 
         $display("!!! TIMEOUT !!!");
         $finish;
     end

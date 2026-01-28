@@ -25,11 +25,20 @@ module tt_um_cpu (
             miso_sync <= uio_in[2];
         end
     end
+    reg [15:0] instr_stable;
+
+    always @(posedge clk) begin
+        if (rst) begin
+            instr_stable <= 16'h0000;
+        end else if (mem_ready) begin
+            instr_stable <= instruction; // On mémorise l'instruction [cite: 228]
+        end
+    end
 
     // ========================================================================
     // SIGNAUX INTERNES
     // ========================================================================
-    wire [15:0] pc_current;
+    wire [9:0] pc_current;
     wire [15:0] instruction;
     wire        mem_ready;
 
@@ -37,7 +46,7 @@ module tt_um_cpu (
     wire [1:0] reg_write_src;
     wire [3:0] alu_op;
     wire [3:0] branch_type;
-    wire [15:0] branch_offset;
+    wire [9:0] branch_offset;
     wire [7:0] alu_immediate;
     wire [2:0] addr1_select, addr2_select;
 
@@ -48,10 +57,8 @@ module tt_um_cpu (
 
     wire zero, overflow, carry, negative;
     wire [3:0] stored_flags;
+    wire [9:0] next_pc;
     
-    wire branch_taken;
-    wire [15:0] branch_target;
-
     // Signaux SPI
     wire spi_cs, spi_sck, spi_mosi;
 
@@ -100,13 +107,12 @@ module tt_um_cpu (
         .clk(clk),
         .rst(rst | !ena),
         .mem_ready(mem_ready),
-        .branch_en(branch_taken),
-        .branch_addr(branch_target),
+        .next_pc(next_pc), // Nouvelle sortie,
         .pc_current(pc_current)
     );
 
     ControlUnit cu (
-        .instruction(instruction),
+        .instruction(instr_stable),
         .reg_write(reg_write),
         .reg_write_src(reg_write_src),
         .mem_read(mem_read),
@@ -128,7 +134,7 @@ module tt_um_cpu (
         .rst(rst | !ena),
         .write_en(reg_write),
         .enable(mem_ready),
-        .addr_wr(instruction[11:9]),
+        .addr_wr(instr_stable[11:9]),
         .data_wr(reg_write_data),
         .addr1_r(addr1_select),
         .addr2_r(addr2_select),
@@ -162,8 +168,7 @@ module tt_um_cpu (
         .branch_offset(branch_offset),
         .stored_flags(stored_flags),
         .pc_current(pc_current),
-        .branch_taken(branch_taken),
-        .branch_target(branch_target)
+        .next_pc(next_pc) 
     );
 
     DataMemory data_mem (

@@ -1,25 +1,24 @@
+// ProgramCounter.v optimisé pour 1x1 Tile
 module ProgramCounter (
     input  wire clk,
     input  wire rst,
     input  wire mem_ready,    
-    input  wire branch_en,    // 1 = Saut demandé par le Control Unit
-    input  wire [15:0] branch_addr,  
-    output reg [15:0]  pc_current   
+    input  wire [9:0] next_pc,     
+    output reg  [9:0] pc_current,
+    output reg ready_q       
 );
 
     always @(posedge clk) begin
         if (rst) begin
-            pc_current <= 16'h0000;
+            pc_current <= 10'd0;
+            ready_q    <= 1'b0;
         end else begin
-            if (mem_ready) begin
-                if (branch_en) begin
-                    // Cas du saut (JUMP)
-                    pc_current <= branch_addr;
-                end else begin
-                    pc_current <= pc_current + 1;
-                end
+            // On mémorise l'état de mem_ready
+            ready_q <= mem_ready;  //Stabilisé un cycle
+            if (ready_q) begin
+                pc_current <= next_pc; 
             end
         end
     end
-
+    
 endmodule

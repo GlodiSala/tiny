@@ -1,7 +1,7 @@
 module ProgramMemory_SPI_RAM (
     input  wire        clk,
     input  wire        rst,
-    input  wire [15:0] address,
+    input  wire [9:0]  address,      // PC réduit à 10 bits
     output reg  [15:0] instruction,
     output reg         ready,
     
@@ -18,10 +18,8 @@ module ProgramMemory_SPI_RAM (
 
     reg [1:0] state;
     reg [4:0] bit_cnt;
-    reg [7:0] cmd_byte;
-    reg [15:0] addr_buf;
-    reg [15:0] data_buf;
-    reg [15:0] last_addr;
+    reg [9:0] addr_shifter; // Réduit à 10 bits
+    reg [9:0] last_addr;    // Réduit à 10 bits
 
     always @(posedge clk) begin
         if (rst) begin
@@ -30,12 +28,9 @@ module ProgramMemory_SPI_RAM (
             spi_cs <= 1;
             spi_sck <= 0;
             spi_mosi <= 0;
-            last_addr <= 16'hFFFF;
+            last_addr <= 10'h3FF; // Adresse impossible au boot
             instruction <= 16'h0000;
             bit_cnt <= 0;
-            cmd_byte <= 8'h00;
-            addr_buf <= 16'h0000;
-            data_buf <= 16'h0000;
         end else begin
             case (state)
                 IDLE: begin
@@ -43,24 +38,19 @@ module ProgramMemory_SPI_RAM (
                     spi_sck <= 0;
                     if (address != last_addr) begin
                         spi_cs <= 0;
-                        cmd_byte <= 8'h03;
-                        addr_buf <= address;
+                        addr_shifter <= address;
                         bit_cnt <= 0;
                         state <= CMD;
-                    end else begin
-                        spi_cs <= 1;
-                        ready <= 1;
                     end
                 end
 
                 CMD: begin
-                    spi_mosi <= cmd_byte[7];
+                    // Commande 0x03 (00000011). 
+                    // On envoie 0 pour les 6 premiers bits, 1 pour les 2 derniers.
+                    spi_mosi <= (bit_cnt >= 6); 
                     spi_sck <= ~spi_sck;
-                    
                     if (spi_sck) begin
-                        cmd_byte <= {cmd_byte[6:0], 1'b0};
-                        bit_cnt <= bit_cnt + 1;
-                        
+                        bit_cnt <= bit_cnt + 5'd1;
                         if (bit_cnt == 7) begin
                             bit_cnt <= 0;
                             state <= ADDR;
@@ -69,13 +59,19 @@ module ProgramMemory_SPI_RAM (
                 end
 
                 ADDR: begin
-                    spi_mosi <= addr_buf[15];
-                    spi_sck <= ~spi_sck;
+                    // L'adresse SPI fait 16 bits. PC = 10 bits.
+                    // On envoie 6 zéros, puis les 10 bits du PC.
+                    if (bit_cnt < 6) 
+                        spi_mosi <= 0;
+                    else 
+                        spi_mosi <= addr_shifter[9];
                     
+                    spi_sck <= ~spi_sck;
                     if (spi_sck) begin
-                        addr_buf <= {addr_buf[14:0], 1'b0};
-                        bit_cnt <= bit_cnt + 1;
+                        if (bit_cnt >= 6)
+                            addr_shifter <= {addr_shifter[8:0], 1'b0};
                         
+                        bit_cnt <= bit_cnt + 5'd1;
                         if (bit_cnt == 15) begin
                             bit_cnt <= 0;
                             state <= DATA;
@@ -86,13 +82,11 @@ module ProgramMemory_SPI_RAM (
                 DATA: begin
                     spi_mosi <= 0;
                     spi_sck <= ~spi_sck;
-                    
                     if (spi_sck) begin
-                        data_buf <= {data_buf[14:0], spi_miso};
-                        bit_cnt <= bit_cnt + 1;
-                        
+                        // On shift directement dans le registre de sortie
+                        instruction <= {instruction[14:0], spi_miso};
+                        bit_cnt <= bit_cnt + 5'd1;
                         if (bit_cnt == 15) begin
-                            instruction <= {data_buf[14:0], spi_miso};
                             last_addr <= address;
                             ready <= 1;
                             spi_cs <= 1;
@@ -103,5 +97,4 @@ module ProgramMemory_SPI_RAM (
             endcase
         end
     end
-
 endmodule
