@@ -8,24 +8,24 @@ module DataMemory (
 );
 
     // RAM de 16 octets (16 mots de 8 bits = 128 bits au total)
-    reg [7:0] ram [0:7];
+    reg [7:0] ram [0:31];
 
     integer i;
     initial begin
-        for (i = 0; i < 16; i = i + 1) begin
+        for (i = 0; i < 31; i = i + 1) begin
             ram[i] = 8'h00;
         end
     end
 
     always @(posedge clk) begin
         if (mem_write) begin
-            ram[addr[2:0]] <= wdata;
+            ram[addr[4:0]] <= wdata;
         end
     end
 
     // Lecture asynchrone (combinatoire)
-    assign rdata = mem_read ? ram[addr[2:0]] : 8'h00;
+    assign rdata = mem_read ? ram[addr[4:0]] : 8'h00;
 
-    wire [4:0] _unused_addr = addr[7:3];
+    wire [2:0] _unused_addr = addr[7:5];
 
 endmodule

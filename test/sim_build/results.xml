@@ -1,23 +1,23 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1769572211" />
-    <testcase name="test_arithmetic_add" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="62" time="0.03003668785095215" sim_time_ns="10280.0" ratio_time="342248.1217307097" />
-    <testcase name="test_arithmetic_sub" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="81" time="0.029921770095825195" sim_time_ns="10300.0" ratio_time="344230.97186476603" />
-    <testcase name="test_logic_and" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="100" time="0.03200984001159668" sim_time_ns="10300.0" ratio_time="321776.0537468624" />
-    <testcase name="test_logic_or" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="119" time="0.026097536087036133" sim_time_ns="10299.999999999996" ratio_time="394673.2735860259" />
-    <testcase name="test_logic_xor" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="138" time="0.02801060676574707" sim_time_ns="10300.0" ratio_time="367717.8465336" />
-    <testcase name="test_immediate_loadi" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="157" time="0.024001121520996094" sim_time_ns="6300.0" ratio_time="262487.7339372988" />
-    <testcase name="test_immediate_addi" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="174" time="0.02410268783569336" sim_time_ns="8299.999999999993" ratio_time="344359.9343185547" />
-    <testcase name="test_memory_store_load" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="195" time="0.029018402099609375" sim_time_ns="10300.0" ratio_time="354947.1802287367" />
-    <testcase name="test_shift_left_register" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="222" time="0.02843022346496582" sim_time_ns="10300.0" ratio_time="362290.5044236656" />
-    <testcase name="test_shift_right" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="239" time="0.022996902465820312" sim_time_ns="8300.0" ratio_time="360918.17201625614" />
-    <testcase name="test_compare_equal" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="257" time="0.029069185256958008" sim_time_ns="10300.0" ratio_time="354327.0961656756" />
-    <testcase name="test_compare_negative" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="279" time="0.028107643127441406" sim_time_ns="10300.0" ratio_time="366448.3696942965" />
-    <testcase name="test_branch_zero_taken" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="299" time="0.033177852630615234" sim_time_ns="12300.0" ratio_time="370729.23726986593" />
-    <testcase name="test_branch_zero_not_taken" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="321" time="0.02899956703186035" sim_time_ns="10300.0" ratio_time="355177.7165736272" />
-    <testcase name="test_branch_not_zero_taken" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="341" time="0.03402280807495117" sim_time_ns="12300.0" ratio_time="361522.1874956202" />
-    <testcase name="test_branch_not_sign_taken" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="364" time="0.04023265838623047" sim_time_ns="14300.0" ratio_time="355432.640386849" />
-    <testcase name="test_jump_unconditional" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="388" time="0.026981592178344727" sim_time_ns="10300.0" ratio_time="381741.7419964831" />
-    <testcase name="test_integration_fibonacci" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="411" time="0.08035445213317871" sim_time_ns="30300.0" ratio_time="377079.2930027208" />
+    <property name="random_seed" value="1769573752" />
+    <testcase name="test_arithmetic_add" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="62" time="0.04660940170288086" sim_time_ns="10280.0" ratio_time="220556.36039980766" />
+    <testcase name="test_arithmetic_sub" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="81" time="0.04652523994445801" sim_time_ns="10300.0" ratio_time="221385.20966890609" />
+    <testcase name="test_logic_and" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="100" time="0.04400897026062012" sim_time_ns="10300.0" ratio_time="234043.19480786836" />
+    <testcase name="test_logic_or" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="119" time="0.050028085708618164" sim_time_ns="10299.999999999996" ratio_time="205884.35184170262" />
+    <testcase name="test_logic_xor" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="138" time="0.06300115585327148" sim_time_ns="10300.0" ratio_time="163489.06397826268" />
+    <testcase name="test_immediate_loadi" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="157" time="0.03851461410522461" sim_time_ns="6300.0" ratio_time="163574.2729444974" />
+    <testcase name="test_immediate_addi" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="174" time="0.03705430030822754" sim_time_ns="8299.999999999993" ratio_time="223995.59378961098" />
+    <testcase name="test_memory_store_load" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="195" time="0.0432887077331543" sim_time_ns="10300.0" ratio_time="237937.34069153917" />
+    <testcase name="test_shift_left_register" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="222" time="0.0560002326965332" sim_time_ns="10300.0" ratio_time="183927.80715423063" />
+    <testcase name="test_shift_right" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="239" time="0.05728340148925781" sim_time_ns="8300.0" ratio_time="144893.63033995937" />
+    <testcase name="test_compare_equal" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="257" time="0.08350849151611328" sim_time_ns="10300.0" ratio_time="123340.75029977731" />
+    <testcase name="test_compare_negative" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="279" time="0.04148745536804199" sim_time_ns="10300.0" ratio_time="248267.81755176396" />
+    <testcase name="test_branch_zero_taken" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="299" time="0.05442166328430176" sim_time_ns="12300.0" ratio_time="226012.93782117838" />
+    <testcase name="test_branch_zero_not_taken" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="321" time="0.04212450981140137" sim_time_ns="10300.0" ratio_time="244513.23104090377" />
+    <testcase name="test_branch_not_zero_taken" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="341" time="0.06541800498962402" sim_time_ns="12300.0" ratio_time="188021.63107772713" />
+    <testcase name="test_branch_not_sign_taken" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="364" time="0.06926727294921875" sim_time_ns="14300.0" ratio_time="206446.70117854388" />
+    <testcase name="test_jump_unconditional" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="388" time="0.04237723350524902" sim_time_ns="10300.0" ratio_time="243055.03564134735" />
+    <testcase name="test_integration_fibonacci" classname="test" file="C:\Users\salag\Documents\ProjetPerso\Microprocesseur\test\test.py" lineno="411" time="0.12163019180297852" sim_time_ns="30300.0" ratio_time="249115.77915688205" />
   </testsuite>
 </testsuites>
