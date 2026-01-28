@@ -24,7 +24,18 @@ module tb ();
   wire VGND = 1'b0;
 `endif
 
-  // DUT (Device Under Test)
+  // Signaux SPI
+  wire spi_cs   = uio_out[0];
+  wire spi_mosi = uio_out[1];
+  wire spi_sck  = uio_out[3];
+  wire spi_miso;
+  
+  // Connecter MISO
+  assign uio_in[2] = spi_miso;
+  assign uio_in[7:3] = 5'b00000;
+  assign uio_in[1:0] = 2'b00;
+
+  // DUT
   tt_um_cpu user_project (
 `ifdef GL_TEST
       .VPWR(VPWR),
@@ -38,6 +49,17 @@ module tb ();
       .ena    (ena),
       .clk    (clk),
       .rst_n  (rst_n)
+  );
+  
+  // Simulateur de Flash SPI
+  spi_flash_sim flash_sim (
+      .spi_cs(spi_cs),
+      .spi_sck(spi_sck),
+      .spi_mosi(spi_mosi),
+      .spi_miso(spi_miso),
+      .pc_current(user_project.pc_current),
+      .spi_state(user_project.program_mem.state),
+      .bit_cnt(user_project.program_mem.bit_cnt)
   );
 
 endmodule
